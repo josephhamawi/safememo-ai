@@ -1,0 +1,162 @@
+{
+  "agents": [
+    {
+      "name": "Atlas",
+      "description": "General-purpose AI assistant with broad knowledge and reasoning capabilities",
+      "type": "general",
+      "systemPrompt": "You are Atlas, a knowledgeable and helpful AI assistant. You excel at answering questions, providing explanations, and helping with a wide range of tasks. Draw on your semantic memories to provide personalized, context-aware responses. Always be clear, concise, and accurate.",
+      "model": "claude",
+      "modelConfig": {
+        "temperature": 0.7,
+        "maxTokens": 4096
+      },
+      "enabledSkills": ["web_search", "file_operations"],
+      "memoryConfig": {
+        "maxWorkingMemoryMessages": 20,
+        "semanticSearchTopK": 10,
+        "episodicSearchTopK": 5,
+        "autoApprovalEnabled": true,
+        "autoApprovalThreshold": 0.9
+      },
+      "channels": {
+        "web": { "enabled": true }
+      },
+      "status": "active"
+    },
+    {
+      "name": "Forge",
+      "description": "Specialized code assistant for software development, debugging, and architecture",
+      "type": "code",
+      "systemPrompt": "You are Forge, a senior software engineer AI. You write clean, efficient, well-tested code. You understand software architecture, design patterns, and best practices across multiple languages. When helping with code, always consider edge cases, error handling, and performance. Reference your episodic memories of past coding sessions to apply lessons learned.",
+      "model": "claude",
+      "modelConfig": {
+        "temperature": 0.3,
+        "maxTokens": 8192
+      },
+      "enabledSkills": ["code_execution", "file_operations", "web_search"],
+      "memoryConfig": {
+        "maxWorkingMemoryMessages": 30,
+        "semanticSearchTopK": 15,
+        "episodicSearchTopK": 10,
+        "autoApprovalEnabled": true,
+        "autoApprovalThreshold": 0.85
+      },
+      "channels": {
+        "web": { "enabled": true }
+      },
+      "status": "active"
+    },
+    {
+      "name": "Sage",
+      "description": "Research-focused agent for deep analysis, literature review, and knowledge synthesis",
+      "type": "research",
+      "systemPrompt": "You are Sage, a research specialist AI. You excel at gathering information, analyzing sources, synthesizing findings, and presenting well-structured research reports. You cite your sources, identify knowledge gaps, and provide balanced perspectives. Leverage your semantic memory to build on previous research and make connections across topics.",
+      "model": "claude",
+      "modelConfig": {
+        "temperature": 0.5,
+        "maxTokens": 8192
+      },
+      "enabledSkills": ["web_search", "file_operations", "database_query"],
+      "memoryConfig": {
+        "maxWorkingMemoryMessages": 20,
+        "semanticSearchTopK": 20,
+        "episodicSearchTopK": 10,
+        "autoApprovalEnabled": false,
+        "autoApprovalThreshold": 0.95
+      },
+      "channels": {
+        "web": { "enabled": true }
+      },
+      "status": "active"
+    },
+    {
+      "name": "Muse",
+      "description": "Creative agent for writing, brainstorming, and content generation",
+      "type": "creative",
+      "systemPrompt": "You are Muse, a creative AI partner. You help with brainstorming ideas, writing content, storytelling, and creative problem-solving. You think divergently, make unexpected connections, and push creative boundaries while staying practical and on-brand. Draw on your memories of past creative sessions to evolve your style and build on successful approaches.",
+      "model": "claude",
+      "modelConfig": {
+        "temperature": 0.9,
+        "maxTokens": 4096
+      },
+      "enabledSkills": ["web_search", "file_operations"],
+      "memoryConfig": {
+        "maxWorkingMemoryMessages": 15,
+        "semanticSearchTopK": 10,
+        "episodicSearchTopK": 5,
+        "autoApprovalEnabled": true,
+        "autoApprovalThreshold": 0.9
+      },
+      "channels": {
+        "web": { "enabled": true }
+      },
+      "status": "active"
+    }
+  ],
+  "skills": [
+    {
+      "name": "web_search",
+      "description": "Search the web using Serper.dev API and fetch URL content",
+      "version": "1.0.0",
+      "author": "noomachy",
+      "trustScore": 5.0,
+      "permissions": ["network"],
+      "sandboxConfig": {
+        "memoryLimitMB": 128,
+        "timeoutMs": 30000,
+        "allowedHosts": ["api.serper.dev", "*"]
+      },
+      "category": "search",
+      "tags": ["search", "web", "research"],
+      "installCount": 0
+    },
+    {
+      "name": "file_operations",
+      "description": "Read, write, list, and delete files in your Cloud Storage",
+      "version": "1.0.0",
+      "author": "noomachy",
+      "trustScore": 5.0,
+      "permissions": ["filesystem"],
+      "sandboxConfig": {
+        "memoryLimitMB": 64,
+        "timeoutMs": 15000,
+        "allowedHosts": []
+      },
+      "category": "storage",
+      "tags": ["files", "storage", "read", "write"],
+      "installCount": 0
+    },
+    {
+      "name": "code_execution",
+      "description": "Execute Python or Node.js code in a sandboxed environment",
+      "version": "1.0.0",
+      "author": "noomachy",
+      "trustScore": 4.5,
+      "permissions": ["exec"],
+      "sandboxConfig": {
+        "memoryLimitMB": 256,
+        "timeoutMs": 60000,
+        "allowedHosts": []
+      },
+      "category": "development",
+      "tags": ["code", "python", "nodejs", "execute"],
+      "installCount": 0
+    },
+    {
+      "name": "database_query",
+      "description": "Run read-only queries against your Firestore collections",
+      "version": "1.0.0",
+      "author": "noomachy",
+      "trustScore": 4.8,
+      "permissions": ["db"],
+      "sandboxConfig": {
+        "memoryLimitMB": 64,
+        "timeoutMs": 15000,
+        "allowedHosts": []
+      },
+      "category": "data",
+      "tags": ["database", "query", "firestore", "data"],
+      "installCount": 0
+    }
+  ]
+}

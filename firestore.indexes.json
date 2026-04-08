@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "episodic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "taskDomain", "order": "ASCENDING" },
+        { "fieldPath": "consolidationScore", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "episodic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "taskDomain", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "episodic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "promotedToSemantic", "order": "ASCENDING" },
+        { "fieldPath": "consolidationScore", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "semantic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "metadata.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "semantic",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "accessControl.visibility", "order": "ASCENDING" },
+        { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "staging",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "metadata.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
