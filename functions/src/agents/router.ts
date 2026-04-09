@@ -14,7 +14,7 @@ import {
   EpisodicMemory,
   Message,
 } from '../types';
-import { processRequest } from './orchestrator';
+import { processRequest, processRequestGemini } from './orchestrator';
 import { classifyIntent } from './orchestrator';
 import { getAvailableTools } from './mcpExecutor';
 
@@ -23,6 +23,7 @@ import { getAvailableTools } from './mcpExecutor';
 // ---------------------------------------------------------------------------
 
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
 const db = admin.firestore();
 
@@ -30,7 +31,12 @@ const db = admin.firestore();
 // CORS helper
 // ---------------------------------------------------------------------------
 
-const ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:5173'];
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://noomachy.web.app',
+  'https://noomachy.firebaseapp.com',
+];
 
 function setCorsHeaders(
   req: { headers: Record<string, string | string[] | undefined> },
@@ -51,7 +57,7 @@ function setCorsHeaders(
 
 export const agentRouter = onRequest(
   {
-    secrets: [anthropicApiKey],
+    secrets: [anthropicApiKey, geminiApiKey],
     timeoutSeconds: 300,
     memory: '1GiB',
     region: 'us-central1',
@@ -256,11 +262,10 @@ export const agentRouter = onRequest(
         idempotencyKey,
       };
 
-      const agentResponse = await processRequest(
-        agentRequest,
-        { semanticMemories, episodicMemories, workingMessages },
-        tools,
-      );
+      const memoryContext = { semanticMemories, episodicMemories, workingMessages };
+      const agentResponse = agent.model === 'gemini'
+        ? await processRequestGemini(agentRequest, memoryContext, tools)
+        : await processRequest(agentRequest, memoryContext, tools);
 
       // ----------------------------------------------------------------
       // 9. Persist conversation message records

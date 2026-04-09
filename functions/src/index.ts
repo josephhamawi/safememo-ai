@@ -22,6 +22,9 @@ export { mcpServer } from './mcp/server';
 // Memory Functions
 export { consolidateEpisodes } from './memory/consolidation';
 
+// Seed
+export { seedSkills } from './seedSkills';
+
 // Firestore Triggers
 export {
   onStagingMemoryCreated,

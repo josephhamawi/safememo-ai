@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "episodic",
+      "collectionGroup": "episodicMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "taskDomain", "order": "ASCENDING" },
@@ -9,7 +9,7 @@
       ]
     },
     {
-      "collectionGroup": "episodic",
+      "collectionGroup": "episodicMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "taskDomain", "order": "ASCENDING" },
@@ -17,7 +17,7 @@
       ]
     },
     {
-      "collectionGroup": "episodic",
+      "collectionGroup": "episodicMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "promotedToSemantic", "order": "ASCENDING" },
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "collectionGroup": "semantic",
+      "collectionGroup": "semanticMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "metadata.validationStatus", "order": "ASCENDING" },
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "collectionGroup": "semantic",
+      "collectionGroup": "semanticMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "accessControl.visibility", "order": "ASCENDING" },
@@ -41,11 +41,19 @@
       ]
     },
     {
-      "collectionGroup": "staging",
+      "collectionGroup": "stagingMemory",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "metadata.validationStatus", "order": "ASCENDING" },
         { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
     },
     {

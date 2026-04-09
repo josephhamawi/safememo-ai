@@ -21,7 +21,7 @@ const db = getFirestore();
  */
 export const onStagingMemoryCreated = onDocumentCreated(
   {
-    document: 'agents/{agentId}/memory/staging/{stagingId}',
+    document: 'agents/{agentId}/stagingMemory/{stagingId}',
     region: 'us-central1',
   },
   async (event) => {
@@ -49,7 +49,7 @@ export const onStagingMemoryCreated = onDocumentCreated(
  */
 export const onMemoryApproved = onDocumentUpdated(
   {
-    document: 'agents/{agentId}/memory/semantic/{memoryId}',
+    document: 'agents/{agentId}/semanticMemory/{memoryId}',
     region: 'us-central1',
   },
   async (event) => {

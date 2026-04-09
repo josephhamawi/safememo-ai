@@ -23,6 +23,17 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if false;
+
+      // Custom MCP servers
+      match /customMcps/{mcpId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Gemini usage tracking
+      match /usage/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isAdmin();
+      }
     }
 
     // Agents collection
@@ -37,13 +48,13 @@ service cloud.firestore {
         && resource.data.ownerId == request.auth.uid;
 
       // L1 - Working Memory (user's own sessions)
-      match /memory/working/{sessionId} {
+      match /workingMemory/{sessionId} {
         allow read, write: if isAuthenticated()
           && get(/databases/$(database)/documents/agents/$(agentId)).data.ownerId == request.auth.uid;
       }
 
       // L2 - Semantic Memory (validation gate enforced)
-      match /memory/semantic/{memoryId} {
+      match /semanticMemory/{memoryId} {
         allow read: if isAuthenticated()
           && (
             get(/databases/$(database)/documents/agents/$(agentId)).data.ownerId == request.auth.uid
@@ -61,20 +72,20 @@ service cloud.firestore {
       }
 
       // L2 - Staging queue
-      match /memory/staging/{tempId} {
+      match /stagingMemory/{tempId} {
         allow read, write: if isAuthenticated()
           && get(/databases/$(database)/documents/agents/$(agentId)).data.ownerId == request.auth.uid;
       }
 
       // L2 - Rejected memories
-      match /memory/rejected/{rejectedId} {
+      match /rejectedMemory/{rejectedId} {
         allow read: if isAuthenticated()
           && get(/databases/$(database)/documents/agents/$(agentId)).data.ownerId == request.auth.uid;
         allow write: if isAdmin();
       }
 
       // L3 - Episodic Decision Log
-      match /memory/episodic/{episodeId} {
+      match /episodicMemory/{episodeId} {
         allow read: if isAuthenticated()
           && get(/databases/$(database)/documents/agents/$(agentId)).data.ownerId == request.auth.uid;
         allow create: if isAuthenticated()

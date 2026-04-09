@@ -2,6 +2,7 @@ import '../init';
 import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, type Content, type Part, type FunctionDeclaration } from '@google/generative-ai';
 import { defineSecret } from 'firebase-functions/params';
 import { v4 as uuidv4 } from 'uuid';
 import { Timestamp } from 'firebase-admin/firestore';
@@ -24,6 +25,7 @@ import { executeTool, formatToolResult } from './mcpExecutor';
 // ---------------------------------------------------------------------------
 
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -32,6 +34,13 @@ const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
 const MAX_TOOL_ITERATIONS = 10;
 const INTENT_MODEL = 'claude-sonnet-4-20250514';
 const AGENT_MODEL = 'claude-sonnet-4-20250514';
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
+// Budget: $5 limit. Gemini 2.0 Flash pricing (approx):
+// Input: $0.10/1M tokens, Output: $0.40/1M tokens
+const GEMINI_BUDGET_LIMIT_USD = 5.0;
+const GEMINI_INPUT_COST_PER_TOKEN = 0.10 / 1_000_000;
+const GEMINI_OUTPUT_COST_PER_TOKEN = 0.40 / 1_000_000;
 
 const db = admin.firestore();
 
@@ -70,7 +79,7 @@ export async function processRequest(
   let totalOutputTokens = 0;
   const startTime = Date.now();
 
-  const client = new Anthropic({ apiKey: anthropicApiKey.value() });
+  const client = new Anthropic({ apiKey: anthropicApiKey.value().trim() });
 
   // ------------------------------------------------------------------
   // 1. Build system prompt & initial messages
@@ -353,6 +362,227 @@ export async function processRequest(
 }
 
 // ---------------------------------------------------------------------------
+// Gemini processing
+// ---------------------------------------------------------------------------
+
+/**
+ * Process a request using Gemini. Mirrors processRequest() but uses the
+ * Google Generative AI SDK.
+ */
+export async function processRequestGemini(
+  request: AgentRequest,
+  memories: MemoryContext,
+  tools: MCPToolDefinition[],
+): Promise<AgentResponse> {
+  const { agent, message, conversationId } = request;
+  const messageId = uuidv4();
+  const allToolCalls: ToolInvocation[] = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const startTime = Date.now();
+
+  // Budget check
+  const budgetOk = await checkGeminiBudget(message.userId);
+  if (!budgetOk) {
+    return {
+      messageId,
+      content: 'You have reached the $5 Gemini API budget limit. Please switch to Claude or contact support to increase your limit.',
+      toolCalls: [],
+      memoryUpdates: { workingMemoryUpdated: false, episodicLogged: false, semanticStaged: [] },
+      tokenUsage: { input: 0, output: 0 },
+    };
+  }
+
+  const genAI = new GoogleGenerativeAI(geminiApiKey.value().trim());
+  const systemPrompt = buildSystemPrompt(agent, memories, tools);
+
+  // Build Gemini tool declarations
+  const geminiTools: FunctionDeclaration[] = tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    parameters: t.inputSchema as unknown as FunctionDeclaration['parameters'],
+  }));
+
+  // Build conversation history for Gemini
+  const geminiHistory: Content[] = memories.workingMessages.map((m) => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    systemInstruction: systemPrompt,
+    generationConfig: {
+      temperature: agent.modelConfig.temperature,
+      maxOutputTokens: agent.modelConfig.maxTokens,
+    },
+    ...(geminiTools.length > 0 ? { tools: [{ functionDeclarations: geminiTools }] } : {}),
+  });
+
+  const chat = model.startChat({ history: geminiHistory });
+
+  let iterations = 0;
+  let finalText = '';
+  let streamIndex = 0;
+  let currentParts: Part[] = [{ text: message.content }];
+
+  while (iterations < MAX_TOOL_ITERATIONS) {
+    iterations++;
+
+    const result = await chat.sendMessageStream(currentParts);
+    let responseText = '';
+    const functionCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+
+    for await (const chunk of result.stream) {
+      const text = chunk.text?.();
+      if (text) {
+        responseText += text;
+        writeStreamToken(agent.id, conversationId, {
+          conversationId,
+          messageId,
+          token: text,
+          index: streamIndex++,
+          done: false,
+          timestamp: Timestamp.now(),
+        }).catch((e) => logger.error('Failed to write stream token', e));
+      }
+
+      // Check for function calls in the chunk
+      if (chunk.candidates?.[0]?.content?.parts) {
+        for (const part of chunk.candidates[0].content.parts) {
+          if (part.functionCall) {
+            functionCalls.push({
+              name: part.functionCall.name,
+              args: (part.functionCall.args ?? {}) as Record<string, unknown>,
+            });
+          }
+        }
+      }
+    }
+
+    // Get usage metadata
+    const usageMetadata = await result.response.then((r) => r.usageMetadata);
+    if (usageMetadata) {
+      totalInputTokens += usageMetadata.promptTokenCount ?? 0;
+      totalOutputTokens += usageMetadata.candidatesTokenCount ?? 0;
+    }
+
+    if (functionCalls.length === 0) {
+      finalText = responseText;
+      break;
+    }
+
+    // Execute tool calls
+    const functionResponses: Part[] = [];
+    for (const fc of functionCalls) {
+      const toolStart = Date.now();
+      logger.info('Executing tool (Gemini)', { tool: fc.name, agentId: agent.id });
+
+      const mcpResult = await executeTool(fc.name, fc.args, agent.id, message.userId);
+      const formatted = formatToolResult(mcpResult);
+      const toolDuration = Date.now() - toolStart;
+
+      allToolCalls.push({
+        toolId: uuidv4(),
+        toolName: fc.name,
+        params: fc.args,
+        result: formatted.content,
+        duration: toolDuration,
+        status: mcpResult.isError ? 'error' : 'success',
+        timestamp: Timestamp.now(),
+      });
+
+      functionResponses.push({
+        functionResponse: {
+          name: fc.name,
+          response: { result: formatted.content },
+        },
+      });
+    }
+
+    currentParts = functionResponses;
+  }
+
+  if (!finalText) {
+    finalText = '[Agent reached maximum tool iterations without a final response]';
+  }
+
+  // Write done token
+  await writeStreamToken(agent.id, conversationId, {
+    conversationId, messageId, token: '', index: streamIndex, done: true, timestamp: Timestamp.now(),
+  });
+
+  const duration = Date.now() - startTime;
+
+  // Log episode
+  await logEpisode({
+    episodeId: uuidv4(), agentId: agent.id, userId: message.userId,
+    taskDomain: (message.metadata?.taskDomain as string) ?? 'general',
+    sessionSnapshot: {
+      sessionId: conversationId, messageCount: geminiHistory.length + 2,
+      toolsUsed: allToolCalls.map((tc) => tc.toolName), summary: finalText.slice(0, 500),
+    },
+    outcome: allToolCalls.some((tc) => tc.status === 'error') ? 'partial' : 'success',
+    lessonsLearned: [], toolCalls: allToolCalls, duration,
+    consolidationScore: 0, promotedToSemantic: false, createdAt: Timestamp.now(),
+  });
+
+  // Track Gemini usage for budget
+  await trackGeminiUsage(message.userId, totalInputTokens, totalOutputTokens);
+
+  // Update working memory
+  try {
+    await updateWorkingMemory(agent, conversationId, message, finalText, allToolCalls);
+  } catch (err) {
+    logger.error('Failed to update working memory', err);
+  }
+
+  return {
+    messageId, content: finalText, toolCalls: allToolCalls,
+    memoryUpdates: { workingMemoryUpdated: true, episodicLogged: true, semanticStaged: [] },
+    tokenUsage: { input: totalInputTokens, output: totalOutputTokens },
+  };
+}
+
+/**
+ * Check if user has remaining Gemini budget.
+ */
+async function checkGeminiBudget(userId: string): Promise<boolean> {
+  const usageRef = db.collection('users').doc(userId).collection('usage').doc('gemini');
+  const snap = await usageRef.get();
+  if (!snap.exists) return true;
+  const data = snap.data();
+  const totalCost = (data?.totalCostUsd ?? 0) as number;
+  return totalCost < GEMINI_BUDGET_LIMIT_USD;
+}
+
+/**
+ * Track Gemini token usage and cost for budget enforcement.
+ */
+async function trackGeminiUsage(
+  userId: string,
+  inputTokens: number,
+  outputTokens: number,
+): Promise<void> {
+  const cost =
+    inputTokens * GEMINI_INPUT_COST_PER_TOKEN +
+    outputTokens * GEMINI_OUTPUT_COST_PER_TOKEN;
+
+  const usageRef = db.collection('users').doc(userId).collection('usage').doc('gemini');
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(usageRef);
+    const existing = snap.data() ?? { totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0, requestCount: 0 };
+    tx.set(usageRef, {
+      totalInputTokens: (existing.totalInputTokens ?? 0) + inputTokens,
+      totalOutputTokens: (existing.totalOutputTokens ?? 0) + outputTokens,
+      totalCostUsd: (existing.totalCostUsd ?? 0) + cost,
+      requestCount: (existing.requestCount ?? 0) + 1,
+      lastUsedAt: Timestamp.now(),
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // System prompt builder
 // ---------------------------------------------------------------------------
 
@@ -445,7 +675,7 @@ export async function extractNewFacts(
   agent: Agent,
   userId: string,
 ): Promise<string[]> {
-  const client = new Anthropic({ apiKey: anthropicApiKey.value() });
+  const client = new Anthropic({ apiKey: anthropicApiKey.value().trim() });
 
   // Build a condensed transcript for analysis
   const transcript = conversation
@@ -510,7 +740,7 @@ export async function extractNewFacts(
 export async function classifyIntent(
   messageContent: string,
 ): Promise<string> {
-  const client = new Anthropic({ apiKey: anthropicApiKey.value() });
+  const client = new Anthropic({ apiKey: anthropicApiKey.value().trim() });
 
   const response = await client.messages.create({
     model: INTENT_MODEL,
