@@ -174,14 +174,15 @@ export interface StreamToken {
 }
 
 export type ReferralSource =
+  | 'linkedin'
   | 'instagram'
   | 'x'
-  | 'linkedin'
   | 'facebook'
-  | 'tiktok'
-  | 'referral'
-  | 'web_search'
   | 'kodefoundry'
+  | 'web_search'
+  | 'referral'
+  | 'reference'
+  | 'tiktok'
   | 'other';
 
 export type PrimaryUse =
@@ -192,6 +193,10 @@ export type PrimaryUse =
   | 'business';
 
 export type AiExperience = 'beginner' | 'intermediate' | 'expert';
+
+export type WorkContext = 'student' | 'individual' | 'startup' | 'small_team' | 'enterprise';
+
+export type CommunicationStyle = 'concise' | 'detailed' | 'casual' | 'formal';
 
 export interface UserProfile {
   uid: string;
@@ -206,11 +211,16 @@ export interface UserProfile {
     resetAt: Timestamp;
   };
   onboardingCompleted: boolean;
+  tourCompleted?: boolean;
   onboarding?: {
     role?: string;
+    workContext?: WorkContext;
     primaryUse?: PrimaryUse;
+    goals?: string[];
     aiExperience?: AiExperience;
+    communicationStyle?: CommunicationStyle;
     preferredIntegrations?: ChannelSource[];
+    timezone?: string;
     referralSource?: ReferralSource;
     completedAt?: Timestamp;
   };

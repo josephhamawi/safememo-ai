@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Github, Mail, Lock, Loader2, User, Bot } from 'lucide-react';
 
@@ -81,14 +82,14 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#09090b]">
+      <div className="flex h-screen items-center justify-center bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#09090b] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-black px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -254,7 +255,21 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-zinc-600">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+          By continuing, you agree to our{' '}
+          <Link
+            href="/terms"
+            className="text-orange-400 underline decoration-orange-500/40 underline-offset-2 hover:text-orange-300"
+          >
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="/privacy"
+            className="text-orange-400 underline decoration-orange-500/40 underline-offset-2 hover:text-orange-300"
+          >
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </div>

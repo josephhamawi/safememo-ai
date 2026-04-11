@@ -7,7 +7,7 @@ import type { Message, SemanticMemory } from '@/types';
 import { Brain, Wrench, Clock, Hash, MessageSquare, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
 interface RightPanelContentProps {
-  tab: 'memory' | 'tools' | 'timeline';
+  tab: 'commands' | 'memory' | 'tools' | 'timeline';
   agentId: string | null;
   conversationId: string | null;
 }

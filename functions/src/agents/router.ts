@@ -18,6 +18,7 @@ import { processRequest, processRequestGemini } from './orchestrator';
 import { classifyIntent } from './orchestrator';
 import { getAvailableTools } from './mcpExecutor';
 import { loadCustomMcpTools } from '../mcp/customMcp';
+import { loadBehaviorProfile, updateBehaviorProfile } from '../memory/behaviorLearning';
 
 // ---------------------------------------------------------------------------
 // Secrets & initialization
@@ -276,7 +277,16 @@ export const agentRouter = onRequest(
         idempotencyKey,
       };
 
-      const memoryContext = { semanticMemories, episodicMemories, workingMessages };
+      // Load learned behavior patterns for the user (ML-style adaptive learning)
+      let behaviorInsights: string[] = [];
+      try {
+        const profile = await loadBehaviorProfile(userId);
+        behaviorInsights = profile.insights || [];
+      } catch (memErr) {
+        logger.warn('Behavior profile load failed (non-fatal)', memErr);
+      }
+
+      const memoryContext = { semanticMemories, episodicMemories, workingMessages, behaviorInsights };
       let agentResponse;
       if (agent.model === 'gemini') {
         try {
@@ -344,7 +354,18 @@ export const agentRouter = onRequest(
       });
 
       // ----------------------------------------------------------------
-      // 11. Return final response
+      // 11. Update behavior learning (fire-and-forget)
+      // ----------------------------------------------------------------
+      updateBehaviorProfile({
+        userId,
+        userMessage: normalizedMessage.content,
+        assistantResponse: agentResponse.content,
+        toolsUsed: agentResponse.toolCalls.map((tc) => tc.toolName),
+        taskDomain,
+      }).catch((e) => logger.warn('Behavior profile update failed', e));
+
+      // ----------------------------------------------------------------
+      // 12. Return final response
       // ----------------------------------------------------------------
       logger.info('Agent request completed', {
         agentId: agent.id,

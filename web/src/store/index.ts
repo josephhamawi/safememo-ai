@@ -44,10 +44,15 @@ interface AppState {
   // UI State
   sidebarOpen: boolean;
   rightPanelOpen: boolean;
-  rightPanelTab: 'memory' | 'tools' | 'timeline';
+  rightPanelTab: 'commands' | 'memory' | 'tools' | 'timeline';
   setSidebarOpen: (open: boolean) => void;
   setRightPanelOpen: (open: boolean) => void;
-  setRightPanelTab: (tab: 'memory' | 'tools' | 'timeline') => void;
+  setRightPanelTab: (tab: 'commands' | 'memory' | 'tools' | 'timeline') => void;
+
+  // Pending prompt — set by Commands panel to inject a message into the chat
+  pendingPrompt: { content: string; nonce: number } | null;
+  setPendingPrompt: (content: string) => void;
+  clearPendingPrompt: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -93,8 +98,14 @@ export const useAppStore = create<AppState>((set) => ({
   // UI State
   sidebarOpen: true,
   rightPanelOpen: true,
-  rightPanelTab: 'memory',
+  rightPanelTab: 'commands',
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+
+  // Pending prompt
+  pendingPrompt: null,
+  setPendingPrompt: (content) =>
+    set({ pendingPrompt: { content, nonce: Date.now() } }),
+  clearPendingPrompt: () => set({ pendingPrompt: null }),
 }));

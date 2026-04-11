@@ -29,6 +29,17 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
+      // Custom slash commands
+      match /commands/{commandId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Learning / behavior profiles (admin-only writes, user reads)
+      match /learning/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isAdmin();
+      }
+
       // Gemini usage tracking
       match /usage/{docId} {
         allow read: if isOwner(userId);

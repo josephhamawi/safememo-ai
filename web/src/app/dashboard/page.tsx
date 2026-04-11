@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   collection,
   addDoc,
@@ -106,12 +106,9 @@ function NewConversationInput({
   const [message, setMessage] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const content = message.trim();
-      if (!content || creating) return;
-
+  const submitContent = useCallback(
+    async (content: string) => {
+      if (!content.trim() || creating) return;
       setCreating(true);
       try {
         const user = auth.currentUser;
@@ -161,8 +158,6 @@ function NewConversationInput({
               idempotencyKey: crypto.randomUUID(),
             }),
           });
-
-          // If mock response, write assistant message client-side
           const chatBody = await chatRes.json().catch(() => null);
           if (chatBody?.mock && chatBody.content) {
             await addDoc(messagesRef, {
@@ -184,8 +179,27 @@ function NewConversationInput({
         setCreating(false);
       }
     },
-    [message, creating, agentId, onConversationCreated]
+    [agentId, creating, onConversationCreated]
   );
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      submitContent(message.trim());
+    },
+    [message, submitContent]
+  );
+
+  // Listen for pending prompts (e.g. from clicking a command in the panel)
+  const pendingPrompt = useAppStore((s) => s.pendingPrompt);
+  const clearPendingPrompt = useAppStore((s) => s.clearPendingPrompt);
+  useEffect(() => {
+    if (pendingPrompt && pendingPrompt.content) {
+      const content = pendingPrompt.content;
+      clearPendingPrompt();
+      submitContent(content);
+    }
+  }, [pendingPrompt, submitContent, clearPendingPrompt]);
 
   return (
     <form onSubmit={handleSubmit} className="flex items-end gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 focus-within:border-orange-600 focus-within:ring-1 focus-within:ring-orange-600 transition-all">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { where, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -27,10 +28,15 @@ import {
   Loader2,
   Trash2,
   RefreshCw,
+  Terminal,
+  Download,
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
 import CreateAgentDialog from '@/components/chat/CreateAgentDialog';
 import RightPanelContent from '@/components/dashboard/RightPanelContent';
+import CommandsPanel from '@/components/dashboard/CommandsPanel';
+import Tour from '@/components/tour/Tour';
+import { updateDoc as fsUpdateDoc } from 'firebase/firestore';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -60,6 +66,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [agentDropdownOpen, setAgentDropdownOpen] = useState(false);
   const [showCreateAgent, setShowCreateAgent] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+
+  // Show tour on first visit (after onboarding) if tourCompleted is not set
+  useEffect(() => {
+    if (profile && profile.onboardingCompleted && !profile.tourCompleted) {
+      // small delay so the layout has rendered before targeting elements
+      const t = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [profile]);
+
+  const handleTourComplete = async () => {
+    setShowTour(false);
+    if (user) {
+      try {
+        await fsUpdateDoc(doc(db, 'users', user.uid), { tourCompleted: true });
+      } catch (err) {
+        console.error('Failed to mark tour completed:', err);
+      }
+    }
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -130,9 +157,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleDeleteAgent = async (agentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const agentName = agents.find((a) => a.id === agentId)?.name || 'this agent';
-    if (!confirm(`Delete "${agentName}"? This will permanently remove the agent and all its conversations.`)) return;
+    if (!confirm(`Delete "${agentName}"? This will permanently delete the agent AND all its conversations, messages, and memories.`)) return;
     try {
-      await deleteDoc(doc(db, 'agents', agentId));
+      // Call the cascade-delete Cloud Function to wipe all subcollections
+      const functions = getFunctions(undefined, 'us-central1');
+      const deleteAgentFn = httpsCallable(functions, 'deleteAgent');
+      await deleteAgentFn({ agentId });
+
       if (selectedAgentId === agentId) {
         const remaining = agents.filter((a) => a.id !== agentId);
         setSelectedAgentId(remaining[0]?.id || null);
@@ -140,6 +171,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     } catch (err) {
       console.error('Failed to delete agent:', err);
+      alert(`Failed to delete agent: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -171,7 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Loading state
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#09090b]">
+      <div className="flex h-screen items-center justify-center bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
       </div>
     );
@@ -182,7 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#09090b]">
+    <div className="flex h-screen overflow-hidden bg-black">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -219,7 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Agent selector */}
-        <div className="border-b border-zinc-800 px-3 py-3">
+        <div data-tour="agents" className="border-b border-zinc-800 px-3 py-3">
           <div className="mb-1.5 flex items-center gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Agent</span>
             <HelpTooltip text="Select which AI agent to work with. Each agent has its own memory, skills, and conversation history." />
@@ -296,7 +328,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto px-2">
+        <div data-tour="conversations" className="flex-1 overflow-y-auto px-2">
           {conversationsLoading ? (
             <div className="space-y-2 px-1 py-2">
               {[...Array(3)].map((_, i) => (
@@ -340,6 +372,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NavLink icon={Brain} label="Memory Explorer" href="/dashboard/memory" active={pathname === '/dashboard/memory'} />
           <NavLink icon={Wrench} label="Skill Marketplace" href="/dashboard/skills" active={pathname === '/dashboard/skills'} />
           <NavLink icon={Settings} label="Settings" href="/dashboard/settings" active={pathname === '/dashboard/settings'} />
+          <NavLink icon={Download} label="Get Desktop App" href="/download" active={false} highlight />
         </nav>
 
         {/* Sign out */}
@@ -432,12 +465,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Right Panel */}
       <aside
+        data-tour="right-panel"
         className={`fixed inset-y-0 right-0 z-40 flex w-[320px] flex-col border-l border-zinc-800 bg-zinc-950 transition-transform duration-200 lg:relative lg:z-auto ${
           rightPanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-0'
         }`}
       >
         {/* Tab bar */}
         <div className="flex border-b border-zinc-800">
+          <RightPanelTab
+            active={rightPanelTab === 'commands'}
+            icon={Terminal}
+            label="Commands"
+            onClick={() => setRightPanelTab('commands')}
+            help="Slash commands you can run from the chat input."
+          />
           <RightPanelTab
             active={rightPanelTab === 'memory'}
             icon={Brain}
@@ -463,11 +504,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto p-4">
-          <RightPanelContent
-            tab={rightPanelTab}
-            agentId={selectedAgentId}
-            conversationId={selectedConversationId}
-          />
+          {rightPanelTab === 'commands' ? (
+            <CommandsPanel />
+          ) : (
+            <RightPanelContent
+              tab={rightPanelTab}
+              agentId={selectedAgentId}
+              conversationId={selectedConversationId}
+            />
+          )}
         </div>
       </aside>
 
@@ -480,19 +525,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setSelectedConversationId(null);
         }}
       />
+
+      {/* First-visit guided tour */}
+      {showTour && <Tour onComplete={handleTourComplete} />}
     </div>
   );
 }
 
 /* ---- Helper components ---- */
 
-function NavLink({ icon: Icon, label, href, active }: { icon: React.ElementType; label: string; href: string; active?: boolean }) {
+function NavLink({
+  icon: Icon,
+  label,
+  href,
+  active,
+  highlight,
+}: {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  active?: boolean;
+  highlight?: boolean;
+}) {
   return (
     <a
       href={href}
       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
         active
           ? 'bg-orange-500/10 text-orange-400'
+          : highlight
+          ? 'border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-orange-600/5 text-orange-400 hover:from-orange-500/15 hover:to-orange-600/10'
           : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
       }`}
     >

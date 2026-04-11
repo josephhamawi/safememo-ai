@@ -10,6 +10,7 @@ import './init';
 
 // Agent Functions
 export { agentRouter } from './agents/router';
+export { deleteAgent } from './agents/deleteAgent';
 
 // Channel Webhooks
 export { telegramWebhook } from './channels/telegram';

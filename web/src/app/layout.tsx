@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} dark h-full antialiased`}>
-      <body className="min-h-full bg-[#09090b] font-sans text-zinc-100">
+      <body className="min-h-full bg-black font-sans text-zinc-100">
         <Providers>{children}</Providers>
         <ToastContainer />
       </body>

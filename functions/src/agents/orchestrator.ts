@@ -52,6 +52,7 @@ interface MemoryContext {
   semanticMemories: SemanticMemory[];
   episodicMemories: EpisodicMemory[];
   workingMessages: Message[];
+  behaviorInsights?: string[];
 }
 
 type ClaudeMessage = Anthropic.MessageParam;
@@ -636,6 +637,17 @@ export function buildSystemPrompt(
     `\nDescription: ${agent.description}` +
     `\n</agent_config>`,
   );
+
+  // Learned behavior patterns (ML-style adaptive learning)
+  if (memories.behaviorInsights && memories.behaviorInsights.length > 0) {
+    sections.push(
+      `\n<learned_user_patterns>` +
+      `\nThe system has learned the following about this user from past interactions:` +
+      `\n${memories.behaviorInsights.map((i) => `  - ${i}`).join('\n')}` +
+      `\nAdapt your responses to match these preferences naturally.` +
+      `\n</learned_user_patterns>`,
+    );
+  }
 
   // L2 semantic memories
   if (memories.semanticMemories.length > 0) {

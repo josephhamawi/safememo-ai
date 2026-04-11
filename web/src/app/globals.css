@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #000000;
     --foreground: #ededed;
   }
 }
@@ -43,4 +43,18 @@ body {
 
 .slide-in-from-right-5 {
   /* handled by animate-in keyframes */
+}
+
+/* Blog typography */
+.prose-blog {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.prose-blog p {
+  margin: 1rem 0;
+}
+.prose-blog a {
+  text-decoration: underline;
+  text-decoration-color: rgba(234, 88, 12, 0.4);
+  text-underline-offset: 2px;
 }

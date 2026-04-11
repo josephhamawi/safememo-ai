@@ -18,7 +18,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#09090b]">
+      <div className="flex h-screen items-center justify-center bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
       </div>
     );
@@ -27,9 +27,9 @@ export default function Home() {
   if (user) return null;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100">
+    <div className="min-h-screen bg-black text-zinc-100">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-zinc-800/50 bg-[#09090b]/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-zinc-800/50 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
@@ -40,6 +40,7 @@ export default function Home() {
           <div className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">Features</a>
             <a href="#pricing" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">Pricing</a>
+            <Link href="/blog" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">Blog</Link>
             <a href="#about" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">About</a>
           </div>
           <div className="flex items-center gap-3">

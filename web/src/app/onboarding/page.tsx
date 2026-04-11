@@ -18,32 +18,87 @@ import {
   Search,
   Palette,
   BarChart3,
+  GraduationCap,
+  Building2,
+  Building,
+  Users,
+  Target,
+  MessageSquare,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
-import type { PrimaryUse, AiExperience, ReferralSource, ChannelSource } from '@/types';
+import type {
+  PrimaryUse,
+  AiExperience,
+  ReferralSource,
+  ChannelSource,
+  WorkContext,
+  CommunicationStyle,
+} from '@/types';
 
-const STEPS = ['About You', 'Primary Use', 'Experience', 'Channels', 'How You Found Us'];
+const STEPS = [
+  'About You',
+  'Your Context',
+  'Primary Use',
+  'Your Goals',
+  'AI Experience',
+  'Style & Channels',
+  'How You Found Us',
+];
 
 interface OnboardingData {
   name: string;
   role: string;
+  workContext: WorkContext | null;
   primaryUse: PrimaryUse | null;
+  goals: string[];
   aiExperience: AiExperience | null;
+  communicationStyle: CommunicationStyle | null;
   preferredIntegrations: ChannelSource[];
+  timezone: string;
   referralSource: ReferralSource | null;
 }
 
+const WORK_CONTEXT_OPTIONS: { value: WorkContext; label: string; icon: React.ElementType }[] = [
+  { value: 'student', label: 'Student', icon: GraduationCap },
+  { value: 'individual', label: 'Solo Professional', icon: User },
+  { value: 'startup', label: 'Startup', icon: Sparkles },
+  { value: 'small_team', label: 'Small Team', icon: Users },
+  { value: 'enterprise', label: 'Enterprise', icon: Building2 },
+];
+
 const PRIMARY_USE_OPTIONS: { value: PrimaryUse; label: string; description: string; icon: React.ElementType }[] = [
-  { value: 'personal_assistant', label: 'Personal Assistant', description: 'Daily tasks, scheduling, reminders', icon: Sparkles },
+  { value: 'personal_assistant', label: 'Personal Assistant', description: 'Daily tasks, scheduling, email triage', icon: Sparkles },
   { value: 'coding', label: 'Coding', description: 'Write, review, and debug code', icon: Code },
   { value: 'research', label: 'Research', description: 'Deep research and analysis', icon: Search },
   { value: 'creative_writing', label: 'Creative Writing', description: 'Stories, content, copywriting', icon: Palette },
   { value: 'business', label: 'Business', description: 'Strategy, planning, analytics', icon: BarChart3 },
 ];
 
+const GOAL_OPTIONS = [
+  'Save time on daily tasks',
+  'Manage my email better',
+  'Stay on top of my calendar',
+  'Get better at writing',
+  'Learn new things faster',
+  'Automate repetitive work',
+  'Improve productivity',
+  'Build something with AI',
+  'Reduce mental clutter',
+  'Stay organized',
+];
+
 const EXPERIENCE_OPTIONS: { value: AiExperience; label: string; description: string }[] = [
   { value: 'beginner', label: 'Beginner', description: "I'm just getting started with AI" },
   { value: 'intermediate', label: 'Intermediate', description: "I've used ChatGPT and similar tools" },
   { value: 'expert', label: 'Expert', description: "I've built AI systems or agents before" },
+];
+
+const STYLE_OPTIONS: { value: CommunicationStyle; label: string; description: string }[] = [
+  { value: 'concise', label: 'Concise', description: 'Short, to the point' },
+  { value: 'detailed', label: 'Detailed', description: 'In-depth, with context' },
+  { value: 'casual', label: 'Casual', description: 'Friendly and conversational' },
+  { value: 'formal', label: 'Formal', description: 'Professional tone' },
 ];
 
 const CHANNEL_OPTIONS: { value: ChannelSource; label: string }[] = [
@@ -55,14 +110,15 @@ const CHANNEL_OPTIONS: { value: ChannelSource; label: string }[] = [
 ];
 
 const REFERRAL_OPTIONS: { value: ReferralSource; label: string }[] = [
+  { value: 'linkedin', label: 'LinkedIn' },
   { value: 'instagram', label: 'Instagram' },
   { value: 'x', label: 'X (Twitter)' },
-  { value: 'linkedin', label: 'LinkedIn' },
   { value: 'facebook', label: 'Facebook' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'referral', label: 'Referral' },
-  { value: 'web_search', label: 'Web Search' },
   { value: 'kodefoundry', label: 'KodeFoundry' },
+  { value: 'web_search', label: 'Web Search' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'reference', label: 'Reference' },
+  { value: 'tiktok', label: 'TikTok' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -98,24 +154,49 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Auto-detect timezone
+  const detectedTimezone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return 'UTC';
+    }
+  })();
+
   const [data, setData] = useState<OnboardingData>({
     name: auth.currentUser?.displayName || '',
     role: '',
+    workContext: null,
     primaryUse: null,
+    goals: [],
     aiExperience: null,
+    communicationStyle: null,
     preferredIntegrations: ['web'],
+    timezone: detectedTimezone,
     referralSource: null,
   });
 
   const canContinue = () => {
     switch (step) {
       case 0: return data.name.trim().length > 0;
-      case 1: return data.primaryUse !== null;
-      case 2: return data.aiExperience !== null;
-      case 3: return data.preferredIntegrations.length > 0;
-      case 4: return data.referralSource !== null;
+      case 1: return data.workContext !== null;
+      case 2: return data.primaryUse !== null;
+      case 3: return data.goals.length > 0;
+      case 4: return data.aiExperience !== null;
+      case 5: return data.communicationStyle !== null && data.preferredIntegrations.length > 0;
+      case 6: return data.referralSource !== null;
       default: return false;
     }
+  };
+
+  const toggleGoal = (goal: string) => {
+    setData((d) => ({
+      ...d,
+      goals: d.goals.includes(goal)
+        ? d.goals.filter((g) => g !== goal)
+        : [...d.goals, goal],
+    }));
   };
 
   const handleComplete = async () => {
@@ -131,16 +212,20 @@ export default function OnboardingPage() {
         onboardingCompleted: true,
         onboarding: {
           role: data.role.trim() || undefined,
+          workContext: data.workContext,
           primaryUse: data.primaryUse,
+          goals: data.goals,
           aiExperience: data.aiExperience,
+          communicationStyle: data.communicationStyle,
           preferredIntegrations: data.preferredIntegrations,
+          timezone: data.timezone,
           referralSource: data.referralSource,
           completedAt: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),
       });
 
-      // Create first agent based on primary use
+      // Create first agent personalized to user's answers
       const agentConfig = USE_TO_AGENT_TYPE[data.primaryUse];
       const agentId = crypto.randomUUID();
       const channels: Record<string, { enabled: boolean }> = { web: { enabled: true } };
@@ -148,13 +233,26 @@ export default function OnboardingPage() {
         channels[ch] = { enabled: true };
       }
 
+      // Personalize the system prompt with onboarding data
+      const personalizedPrompt = `${agentConfig.prompt}
+
+USER PROFILE:
+- Name: ${data.name.trim()}
+${data.role ? `- Role: ${data.role.trim()}` : ''}
+- Context: ${WORK_CONTEXT_OPTIONS.find((w) => w.value === data.workContext)?.label}
+- Communication style: ${data.communicationStyle}
+- Goals: ${data.goals.join(', ')}
+- Timezone: ${data.timezone}
+
+Respond in a ${data.communicationStyle} style. Adapt to these preferences naturally.`;
+
       await setDoc(doc(db, 'agents', agentId), {
         id: agentId,
         ownerId: user.uid,
         name: agentConfig.name,
-        description: `Your ${agentConfig.type} agent, created during onboarding.`,
+        description: `Personalized ${agentConfig.type} agent for ${data.name}`,
         type: agentConfig.type,
-        systemPrompt: agentConfig.prompt,
+        systemPrompt: personalizedPrompt,
         model: 'claude',
         modelConfig: { temperature: 0.7, maxTokens: 4096 },
         enabledSkills: [],
@@ -188,21 +286,26 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="w-full max-w-lg">
-      {/* Progress */}
-      <div className="mb-10 flex items-center justify-center gap-2">
-        {STEPS.map((_, i) => (
-          <div
-            key={i}
-            className={`h-1.5 w-10 rounded-full transition-colors ${
-              i <= step ? 'bg-orange-500' : 'bg-zinc-800'
-            }`}
-          />
+    <div className="w-full max-w-2xl">
+      {/* Progress dots */}
+      <div className="mb-8 flex items-center justify-center gap-1.5">
+        {STEPS.map((label, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                i < step
+                  ? 'w-5 bg-orange-500'
+                  : i === step
+                  ? 'w-10 bg-orange-500'
+                  : 'w-5 bg-zinc-800'
+              }`}
+            />
+          </div>
         ))}
       </div>
 
       <div className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">
-        Step {step + 1} of {STEPS.length}
+        Step {step + 1} of {STEPS.length} · {STEPS[step]}
       </div>
 
       {/* Step 0: Name & Role */}
@@ -212,8 +315,8 @@ export default function OnboardingPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
               <User className="h-7 w-7 text-orange-400" />
             </div>
-            <h2 className="text-2xl font-bold text-zinc-100">Welcome! Tell us about yourself</h2>
-            <p className="mt-2 text-sm text-zinc-500">We'll personalize your experience based on your answers.</p>
+            <h2 className="text-2xl font-bold text-zinc-100">Welcome! Let&apos;s get to know you</h2>
+            <p className="mt-2 text-sm text-zinc-500">A few quick questions so we can personalize your experience.</p>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-300">
@@ -229,28 +332,57 @@ export default function OnboardingPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-300">
-              What's your role?
+              What&apos;s your role or what do you do?
             </label>
             <input
               type="text"
               value={data.role}
               onChange={(e) => setData({ ...data, role: e.target.value })}
-              placeholder="e.g. Software Engineer, Student, Entrepreneur..."
+              placeholder="e.g. Software Engineer, Founder, Student, Marketer"
               className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
             />
           </div>
         </div>
       )}
 
-      {/* Step 1: Primary Use */}
+      {/* Step 1: Work Context */}
       {step === 1 && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
+              <Building className="h-7 w-7 text-orange-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-zinc-100">What&apos;s your context?</h2>
+            <p className="mt-2 text-sm text-zinc-500">This helps us tailor recommendations to your situation.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {WORK_CONTEXT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setData({ ...data, workContext: opt.value })}
+                className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors ${
+                  data.workContext === opt.value
+                    ? 'border-orange-600 bg-orange-500/5'
+                    : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
+                }`}
+              >
+                <opt.icon className={`h-6 w-6 ${data.workContext === opt.value ? 'text-orange-400' : 'text-zinc-400'}`} />
+                <span className="text-sm font-medium text-zinc-100">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Primary Use */}
+      {step === 2 && (
         <div className="space-y-6">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
               <Briefcase className="h-7 w-7 text-orange-400" />
             </div>
             <h2 className="text-2xl font-bold text-zinc-100">What will you use Noomachy for?</h2>
-            <p className="mt-2 text-sm text-zinc-500">We'll create your first agent based on this.</p>
+            <p className="mt-2 text-sm text-zinc-500">We&apos;ll pre-configure your first agent based on this.</p>
           </div>
           <div className="space-y-3">
             {PRIMARY_USE_OPTIONS.map((opt) => (
@@ -278,8 +410,44 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 2: AI Experience */}
-      {step === 2 && (
+      {/* Step 3: Goals */}
+      {step === 3 && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
+              <Target className="h-7 w-7 text-orange-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-zinc-100">What are your goals?</h2>
+            <p className="mt-2 text-sm text-zinc-500">Pick all that apply — your agent will focus on these.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {GOAL_OPTIONS.map((goal) => {
+              const selected = data.goals.includes(goal);
+              return (
+                <button
+                  key={goal}
+                  onClick={() => toggleGoal(goal)}
+                  className={`flex items-center gap-2.5 rounded-lg border px-4 py-2.5 text-left text-sm transition-colors ${
+                    selected
+                      ? 'border-orange-600 bg-orange-500/10 text-orange-300'
+                      : 'border-zinc-800 bg-zinc-950 text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  {selected ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-orange-400" />
+                  ) : (
+                    <div className="h-4 w-4 shrink-0 rounded-full border border-zinc-700" />
+                  )}
+                  <span>{goal}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: AI Experience */}
+      {step === 4 && (
         <div className="space-y-6">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
@@ -307,58 +475,95 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 3: Preferred Channels */}
-      {step === 3 && (
+      {/* Step 5: Style + Channels */}
+      {step === 5 && (
         <div className="space-y-6">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
-              <Globe className="h-7 w-7 text-orange-400" />
+              <MessageSquare className="h-7 w-7 text-orange-400" />
             </div>
-            <h2 className="text-2xl font-bold text-zinc-100">Where will you use your agents?</h2>
-            <p className="mt-2 text-sm text-zinc-500">Select all that apply. You can add more later.</p>
+            <h2 className="text-2xl font-bold text-zinc-100">Communication preferences</h2>
+            <p className="mt-2 text-sm text-zinc-500">How should your agent talk to you, and where?</p>
           </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            {CHANNEL_OPTIONS.map((opt) => {
-              const selected = data.preferredIntegrations.includes(opt.value);
-              return (
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Communication style
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {STYLE_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => {
-                    const integrations = selected
-                      ? data.preferredIntegrations.filter((c) => c !== opt.value)
-                      : [...data.preferredIntegrations, opt.value];
-                    setData({ ...data, preferredIntegrations: integrations });
-                  }}
-                  className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-colors ${
-                    selected
-                      ? 'border-orange-600 bg-orange-500/10 text-orange-400'
-                      : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'
+                  onClick={() => setData({ ...data, communicationStyle: opt.value })}
+                  className={`flex flex-col rounded-lg border p-3 text-left transition-colors ${
+                    data.communicationStyle === opt.value
+                      ? 'border-orange-600 bg-orange-500/5'
+                      : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
                   }`}
                 >
-                  {opt.label}
+                  <span className="text-sm font-medium text-zinc-100">{opt.label}</span>
+                  <span className="mt-0.5 text-xs text-zinc-500">{opt.description}</span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Channels you want to use
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CHANNEL_OPTIONS.map((opt) => {
+                const selected = data.preferredIntegrations.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      const integrations = selected
+                        ? data.preferredIntegrations.filter((c) => c !== opt.value)
+                        : [...data.preferredIntegrations, opt.value];
+                      setData({ ...data, preferredIntegrations: integrations });
+                    }}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                      selected
+                        ? 'border-orange-600 bg-orange-500/10 text-orange-400'
+                        : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              <Clock className="mr-1 inline h-3 w-3" /> Timezone (auto-detected)
+            </p>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-300">
+              {data.timezone}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Step 4: Referral Source */}
-      {step === 4 && (
+      {/* Step 6: Referral Source */}
+      {step === 6 && (
         <div className="space-y-6">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
               <Megaphone className="h-7 w-7 text-orange-400" />
             </div>
             <h2 className="text-2xl font-bold text-zinc-100">How did you hear about us?</h2>
-            <p className="mt-2 text-sm text-zinc-500">This helps us reach more people like you.</p>
+            <p className="mt-2 text-sm text-zinc-500">Help us know where to find more people like you.</p>
           </div>
-          <div className="flex flex-wrap justify-center gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {REFERRAL_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setData({ ...data, referralSource: opt.value })}
-                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
                   data.referralSource === opt.value
                     ? 'border-orange-600 bg-orange-500/10 text-orange-400'
                     : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'

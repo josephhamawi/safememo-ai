@@ -44,7 +44,7 @@ function createWindow(): void {
     icon: path.join(__dirname, '..', 'assets', 'icon.icns'),
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 15, y: 15 },
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000000',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -55,7 +55,7 @@ function createWindow(): void {
   });
 
   // Dark title bar appearance
-  mainWindow.setBackgroundColor('#0a0a0a');
+  mainWindow.setBackgroundColor('#000000');
 
   // Load the hosted web app
   mainWindow.loadURL(WEB_APP_URL);

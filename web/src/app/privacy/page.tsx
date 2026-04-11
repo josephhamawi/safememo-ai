@@ -1,0 +1,354 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { Bot, ArrowLeft, Shield, Lock, Database, Eye, Trash2, Download } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — Noomachy',
+  description:
+    'How Noomachy collects, uses, and protects your data. Sovereign memory means you own your information.',
+  alternates: { canonical: 'https://noomachy.web.app/privacy' },
+  openGraph: {
+    title: 'Privacy Policy — Noomachy',
+    description: 'How Noomachy collects, uses, and protects your data.',
+    url: 'https://noomachy.web.app/privacy',
+  },
+};
+
+export default function PrivacyPage() {
+  return (
+    <div className="min-h-screen bg-black text-zinc-100">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 border-b border-zinc-800/50 bg-black/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+              <Bot className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold">Noomachy</span>
+          </Link>
+          <Link href="/auth/login" className="text-sm text-zinc-400 hover:text-zinc-200">
+            Sign In
+          </Link>
+        </div>
+      </nav>
+
+      <article className="mx-auto max-w-3xl px-6 py-12">
+        <Link
+          href="/auth/login"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to sign in
+        </Link>
+
+        <h1 className="mb-4 text-4xl font-bold">Privacy Policy</h1>
+        <p className="mb-8 text-sm text-zinc-500">Last updated: April 11, 2026</p>
+
+        {/* Privacy promises */}
+        <div className="mb-12 grid gap-3 md:grid-cols-2">
+          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <Shield className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Sovereign memory</p>
+              <p className="text-xs text-zinc-400">Your data lives in your account, not our training set.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Encrypted at rest</p>
+              <p className="text-xs text-zinc-400">All data encrypted in Google Cloud Firestore.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <Eye className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Never sold</p>
+              <p className="text-xs text-zinc-400">We do not sell your data to third parties. Period.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+            <Trash2 className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">Right to delete</p>
+              <p className="text-xs text-zinc-400">Delete any memory or your entire account anytime.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8 text-zinc-300 leading-relaxed">
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">1. Who We Are</h2>
+            <p>
+              Noomachy is an AI agent platform that lets you create personal AI assistants
+              with sovereign memory and tool use. This Privacy Policy explains what data we
+              collect, how we use it, and your rights over it.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">2. Information We Collect</h2>
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.1 Account Information</h3>
+            <ul className="ml-6 list-disc space-y-1 text-sm">
+              <li>Email address</li>
+              <li>Display name (optional)</li>
+              <li>Profile photo (optional, from Google/GitHub OAuth)</li>
+              <li>Onboarding preferences (use case, experience level, etc.)</li>
+            </ul>
+
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.2 Conversation Data</h3>
+            <ul className="ml-6 list-disc space-y-1 text-sm">
+              <li>Messages you send to AI agents</li>
+              <li>Responses generated by AI models</li>
+              <li>Tool invocations and their results</li>
+              <li>Conversation metadata (timestamps, message counts)</li>
+            </ul>
+
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.3 Memory Data</h3>
+            <ul className="ml-6 list-disc space-y-1 text-sm">
+              <li>Working memory (current session context, expires after 24 hours)</li>
+              <li>Semantic memory (long-term facts, you control)</li>
+              <li>Episodic memory (logs of past tasks and outcomes)</li>
+            </ul>
+
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.4 Usage Telemetry</h3>
+            <ul className="ml-6 list-disc space-y-1 text-sm">
+              <li>API token consumption (for billing)</li>
+              <li>Tool usage patterns (for the behavior learning system)</li>
+              <li>Audit logs (for security and debugging)</li>
+            </ul>
+
+            <p className="mt-4">
+              We do <strong>not</strong> collect: phone number, physical address, payment
+              card details (we use a third-party processor), or location data unless you
+              explicitly share it in a conversation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">3. How We Use Your Data</h2>
+            <ul className="ml-6 list-disc space-y-2">
+              <li><strong>Provide the Service.</strong> We process your messages to generate AI responses.</li>
+              <li><strong>Personalize.</strong> We use your memory to make future responses smarter and more relevant.</li>
+              <li><strong>Improve.</strong> We use anonymized aggregate metrics to improve the platform.</li>
+              <li><strong>Bill.</strong> We track API usage to bill paid plans accurately.</li>
+              <li><strong>Secure.</strong> We log security events to detect and prevent abuse.</li>
+            </ul>
+            <p className="mt-4">
+              We do <strong>NOT</strong> use your conversations or memories to train AI models
+              of any kind, ours or third parties&apos;.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">4. Third-Party Processors</h2>
+            <p>
+              When you use Noomachy, your prompts are forwarded to AI model providers to
+              generate responses. These providers process your data under their own terms:
+            </p>
+            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
+              <li>
+                <strong>Anthropic (Claude)</strong> — model inference;{' '}
+                <a
+                  href="https://www.anthropic.com/legal/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 underline"
+                >
+                  privacy policy
+                </a>
+              </li>
+              <li>
+                <strong>Google Cloud (Gemini, Firebase, Vertex AI)</strong> — model inference, hosting, storage;{' '}
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 underline"
+                >
+                  privacy policy
+                </a>
+              </li>
+              <li>
+                <strong>Stripe</strong> — payment processing for paid plans;{' '}
+                <a
+                  href="https://stripe.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 underline"
+                >
+                  privacy policy
+                </a>
+              </li>
+            </ul>
+            <p className="mt-3">
+              For Anthropic and Google, we use the API tier which contractually prohibits
+              training on customer data.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">5. Sovereign Memory</h2>
+            <p>
+              Noomachy is built on a &ldquo;sovereign memory&rdquo; model: every fact your
+              agent learns is stored in your account, scoped to your user ID, isolated by
+              Firestore security rules. Other users cannot access your memories. We cannot
+              read them either, except as necessary to deliver the Service.
+            </p>
+            <p className="mt-3">
+              Read more:{' '}
+              <Link
+                href="/blog/sovereign-memory"
+                className="text-orange-400 underline underline-offset-2"
+              >
+                Sovereign Memory: Why AI Agents Need Their Own Brain
+              </Link>
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">6. Local-First Integrations</h2>
+            <p>
+              When you use the Noomachy desktop app to connect local Mac apps (Mail, Notes,
+              Calendar, etc.), your local data <strong>never leaves your computer</strong>{' '}
+              except as specific responses returned to your AI agent. We do not store copies
+              of your emails, notes, calendar events, or files.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">7. Data Retention</h2>
+            <p>We retain data as long as your account is active. Specifically:</p>
+            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
+              <li>Working memory expires after 24 hours of inactivity</li>
+              <li>Semantic memory persists until you delete it</li>
+              <li>Episodic memory is append-only; you can delete the entire log via account deletion</li>
+              <li>Audit logs are retained for 90 days</li>
+            </ul>
+            <p className="mt-3">
+              When you delete your account, all data is removed from our systems within 30
+              days, except where retention is required by law.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">8. Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul className="ml-6 mt-2 list-disc space-y-2">
+              <li className="flex items-start gap-2">
+                <Eye className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+                <span><strong>Access</strong> — view all your data through the Memory Explorer and Settings page</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Download className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+                <span><strong>Export</strong> — download your conversations and memories in JSON format</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+                <span><strong>Delete</strong> — remove individual memories, agents, or your entire account</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Database className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
+                <span><strong>Portability</strong> — take your data to another platform via export</span>
+              </li>
+            </ul>
+            <p className="mt-3">
+              EU residents have additional rights under GDPR (right to rectification, right
+              to object, right to lodge a complaint with a supervisory authority). Contact us
+              at{' '}
+              <a
+                href="mailto:privacy@noomachy.com"
+                className="text-orange-400 underline underline-offset-2"
+              >
+                privacy@noomachy.com
+              </a>{' '}
+              to exercise any of these rights.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">9. Cookies and Tracking</h2>
+            <p>
+              We use Firebase Auth cookies for session management. We do not use third-party
+              advertising cookies, retargeting pixels, or behavioral tracking. We use minimal
+              analytics (Firebase Analytics) for aggregate usage metrics; you can opt out in
+              Settings.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">10. Security</h2>
+            <p>We take security seriously. Our measures include:</p>
+            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
+              <li>All data encrypted in transit (TLS) and at rest</li>
+              <li>Multi-tenant isolation enforced at the database level via Firestore security rules</li>
+              <li>API keys stored as encrypted Google Cloud Secrets, never exposed to clients</li>
+              <li>Tamper-proof audit logs for sensitive actions</li>
+              <li>Sandboxed code execution (isolated-vm) for AI tool calls</li>
+              <li>Regular security reviews and dependency audits</li>
+            </ul>
+            <p className="mt-3">
+              No system is 100% secure. If you discover a vulnerability, please report it to{' '}
+              <a
+                href="mailto:security@noomachy.com"
+                className="text-orange-400 underline underline-offset-2"
+              >
+                security@noomachy.com
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">11. Children&apos;s Privacy</h2>
+            <p>
+              Noomachy is not directed at children under 13. We do not knowingly collect data
+              from children under 13. If you believe we have collected such data, please
+              contact us and we will delete it.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">12. Changes to This Policy</h2>
+            <p>
+              We may update this Privacy Policy from time to time. Material changes will be
+              announced via email or in-app notification at least 30 days before they take
+              effect.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold text-zinc-100">13. Contact Us</h2>
+            <p>
+              Questions about privacy? Email{' '}
+              <a
+                href="mailto:privacy@noomachy.com"
+                className="text-orange-400 underline underline-offset-2"
+              >
+                privacy@noomachy.com
+              </a>
+              .
+            </p>
+          </section>
+        </div>
+      </article>
+
+      <footer className="border-t border-zinc-800/50 px-6 py-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between text-xs text-zinc-600">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            Noomachy
+          </div>
+          <div className="flex gap-4">
+            <Link href="/terms" className="hover:text-zinc-400">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-zinc-400">
+              Privacy
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
