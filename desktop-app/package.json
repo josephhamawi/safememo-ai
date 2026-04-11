@@ -1,0 +1,76 @@
+{
+  "name": "noomachy",
+  "version": "1.0.0",
+  "description": "Noomachy AI Agent Platform - Desktop App",
+  "main": "dist/main.js",
+  "author": "Noomachy",
+  "license": "MIT",
+  "scripts": {
+    "build:ts": "tsc",
+    "build:mcp": "cd ../desktop-mcp && npm run build",
+    "build": "npm run build:ts",
+    "start": "npm run build:ts && electron .",
+    "dev": "tsc && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "cloudflared": "^0.7.1",
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0",
+    "typescript": "^5.7.0"
+  },
+  "build": {
+    "appId": "com.noomachy.desktop",
+    "productName": "Noomachy",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../desktop-mcp/dist",
+        "to": "mcp-server/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../desktop-mcp/node_modules",
+        "to": "mcp-server/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../desktop-mcp/package.json",
+        "to": "mcp-server/package.json"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "darkModeSupport": true,
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": true
+    },
+    "dmg": {
+      "title": "Noomachy",
+      "artifactName": "Noomachy-${version}.${ext}"
+    }
+  }
+}

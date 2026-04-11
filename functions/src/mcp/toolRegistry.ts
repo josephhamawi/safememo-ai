@@ -313,8 +313,10 @@ export async function getToolDefinitions(
     definitions.push(tool.definition);
   }
 
-  // Load skill-based tools from Firestore if skill IDs are provided
+  // Load skill-based tools from Firestore if skill IDs are provided.
+  // Skip skills that map to built-in tools (they're already registered).
   if (skillIds && skillIds.length > 0) {
+    const builtinNames = new Set(Array.from(registry.keys()));
     try {
       const skillDocs = await Promise.all(
         skillIds.map((id) => db.collection('skills').doc(id).get()),
@@ -324,8 +326,15 @@ export async function getToolDefinitions(
         if (!doc.exists) continue;
         const skill = doc.data() as Skill;
 
+        // Skip if this skill maps to built-in tools (e.g. web_search, file_operations)
+        if (skill.implementation?.hash === 'builtin') continue;
+
+        // Only add external MCP skills with valid endpoints
+        if (!skill.mcpEndpoint) continue;
+
+        const toolName = `skill_${skill.id}`.replace(/[^a-zA-Z0-9_-]/g, '_');
         definitions.push({
-          name: `skill_${skill.id}`,
+          name: toolName,
           description: `[Skill] ${skill.name}: ${skill.description}`,
           inputSchema: {
             type: 'object',

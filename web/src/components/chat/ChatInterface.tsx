@@ -15,7 +15,7 @@ import { useStreamingResponse } from '@/hooks/useStreamingResponse';
 import type { Message } from '@/types';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MessageInput from '@/components/chat/MessageInput';
-import { Loader2, Bot } from 'lucide-react';
+import { Loader2, Bot, Square } from 'lucide-react';
 
 interface ChatInterfaceProps {
   agentId: string;
@@ -36,6 +36,7 @@ export default function ChatInterface({
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Real-time Firestore listener for messages
   useEffect(() => {
@@ -109,7 +110,9 @@ export default function ChatInterface({
         const token = await auth.currentUser?.getIdToken();
 
         // Call agent API endpoint
+        abortRef.current = new AbortController();
         const res = await fetch('/api/chat', {
+          signal: abortRef.current.signal,
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -126,18 +129,6 @@ export default function ChatInterface({
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || `Request failed (${res.status})`);
-        }
-
-        // If the API returned mock content, write the assistant message
-        // to Firestore client-side so the real-time listener picks it up.
-        const resBody = await res.json().catch(() => null);
-        if (resBody?.mock && resBody.content) {
-          await addDoc(messagesRef, {
-            role: 'assistant',
-            content: resBody.content,
-            timestamp: serverTimestamp(),
-            metadata: { mock: true, idempotencyKey: resBody.messageId },
-          });
         }
       } catch (err) {
         console.error('Send error:', err);
@@ -176,7 +167,7 @@ export default function ChatInterface({
         )}
 
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+          <MessageBubble key={msg.id} message={msg} onRetry={handleSend} />
         ))}
 
         {/* Streaming content */}
@@ -219,10 +210,25 @@ export default function ChatInterface({
 
       {/* Input area */}
       <div className="border-t border-zinc-800 px-4 py-3">
-        <MessageInput
-          onSend={handleSend}
-          disabled={sending || isStreaming}
-        />
+        {sending ? (
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                abortRef.current?.abort();
+                setSending(false);
+              }}
+              className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+            >
+              <Square className="h-3.5 w-3.5 fill-current" />
+              Stop generating
+            </button>
+          </div>
+        ) : (
+          <MessageInput
+            onSend={handleSend}
+            disabled={isStreaming}
+          />
+        )}
       </div>
     </div>
   );

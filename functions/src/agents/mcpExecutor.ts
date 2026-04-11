@@ -9,6 +9,8 @@ import {
 } from '../types';
 import { Timestamp } from 'firebase-admin/firestore';
 import { v4 as uuidv4 } from 'uuid';
+import { getToolHandler } from '../mcp/toolRegistry';
+import { executeCustomMcpTool, isCustomMcpTool } from '../mcp/customMcp';
 
 const db = admin.firestore();
 
@@ -30,28 +32,33 @@ export async function executeTool(
   let status: 'success' | 'error' = 'success';
   let result: MCPToolResult;
 
+  // Inject userId into params for built-in tools that need it
+  const enrichedParams = { ...params, userId: params.userId ?? userId };
+
   try {
-    // Resolve the skill that owns this tool
-    const skillSnap = await db
-      .collection('skills')
-      .where('name', '==', toolName.split('.')[0]) // convention: toolName = "skillName.action"
-      .limit(1)
-      .get();
-
-    if (skillSnap.empty) {
-      throw new Error(`No skill found for tool "${toolName}"`);
+    // 1. Try custom MCP routing first (e.g. desktop MCP tools like mail_read_inbox)
+    if (isCustomMcpTool(toolName)) {
+      const customResult = await executeCustomMcpTool(toolName, enrichedParams);
+      if (customResult) {
+        result = customResult;
+        if (customResult.isError) status = 'error';
+      } else {
+        throw new Error(`Custom MCP returned no result for "${toolName}"`);
+      }
+    } else {
+      // 2. Try built-in tool handler from the registry
+      const handler = getToolHandler(toolName);
+      if (handler) {
+        result = await withTimeout(
+          handler(enrichedParams),
+          30_000,
+          `Tool "${toolName}" exceeded timeout`,
+        );
+        if (result.isError) status = 'error';
+      } else {
+        throw new Error(`No handler found for tool "${toolName}"`);
+      }
     }
-
-    const skill = { id: skillSnap.docs[0].id, ...skillSnap.docs[0].data() } as Skill;
-
-    // Timeout wrapper
-    const timeoutMs = skill.sandboxConfig?.timeoutMs ?? 30_000;
-
-    result = await withTimeout(
-      callMcpEndpoint(skill, toolName, params),
-      timeoutMs,
-      `Tool "${toolName}" exceeded timeout of ${timeoutMs}ms`,
-    );
   } catch (err: unknown) {
     status = 'error';
     const message = err instanceof Error ? err.message : String(err);
@@ -69,7 +76,7 @@ export async function executeTool(
       userId,
       agentId,
       action: `tool_execution:${toolName}`,
-      skillId: toolName.split('.')[0],
+      skillId: toolName,
       params,
       status,
       duration,
@@ -84,41 +91,15 @@ export async function executeTool(
 // ---------------------------------------------------------------------------
 
 /**
- * Given an array of skill IDs the agent has enabled, load their MCP tool
- * definitions so they can be passed to Claude as available tools.
+ * Given an array of skill IDs the agent has enabled, return all available
+ * tool definitions: built-in tools (always) + external skill MCP tools.
  */
 export async function getAvailableTools(
   skillIds: string[],
 ): Promise<MCPToolDefinition[]> {
-  if (skillIds.length === 0) return [];
-
-  const tools: MCPToolDefinition[] = [];
-
-  // Firestore `in` queries are limited to 30 elements
-  const batches = chunk(skillIds, 30);
-
-  for (const batch of batches) {
-    const snap = await db
-      .collection('skills')
-      .where(admin.firestore.FieldPath.documentId(), 'in', batch)
-      .get();
-
-    for (const doc of snap.docs) {
-      const skill = { id: doc.id, ...doc.data() } as Skill;
-
-      // Each skill exposes one top-level tool with its own input schema
-      tools.push({
-        name: skill.name,
-        description: skill.description,
-        inputSchema: {
-          type: 'object',
-          ...(await fetchToolSchema(skill)),
-        },
-      });
-    }
-  }
-
-  return tools;
+  // Delegate to the central tool registry which handles built-ins + external skills
+  const { getToolDefinitions } = await import('../mcp/toolRegistry');
+  return getToolDefinitions(skillIds);
 }
 
 // ---------------------------------------------------------------------------

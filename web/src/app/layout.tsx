@@ -11,7 +11,28 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Noomachy - AI Agent Platform',
-  description: 'AI Agent Platform with Sovereign Memory',
+  description: 'AI agents with sovereign memory. Build intelligent agents that learn, remember, and use tools autonomously.',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.png', sizes: '659x659', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Noomachy - AI Agent Platform',
+    description: 'AI agents with sovereign memory. Build intelligent agents that learn, remember, and use tools autonomously.',
+    url: 'https://noomachy.web.app',
+    siteName: 'Noomachy',
+    images: [{ url: '/og-image.png', width: 659, height: 659 }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Noomachy - AI Agent Platform',
+    description: 'AI agents with sovereign memory.',
+    images: ['/og-image.png'],
+  },
 };
 
 export default function RootLayout({

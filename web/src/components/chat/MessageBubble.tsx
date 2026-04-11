@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Copy, Check, Bot, User } from 'lucide-react';
+import { Copy, Check, Bot, User, RotateCcw } from 'lucide-react';
 import type { Message } from '@/types';
 import ToolCallCard from '@/components/chat/ToolCallCard';
 
 interface MessageBubbleProps {
   message: Message;
+  onRetry?: (content: string) => void;
 }
 
 /**
@@ -132,7 +133,7 @@ function renderInline(text: string): React.ReactNode {
   });
 }
 
-export default function MessageBubble({ message }: MessageBubbleProps) {
+export default function MessageBubble({ message, onRetry }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -225,6 +226,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               onClick={handleCopy}
               className="rounded p-0.5 hover:bg-zinc-700 transition-colors"
               aria-label="Copy message"
+              title="Copy"
             >
               {copied ? (
                 <Check className="h-3 w-3 text-emerald-400" />
@@ -232,6 +234,17 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 <Copy className="h-3 w-3" />
               )}
             </button>
+            {isUser && onRetry && (
+              <button
+                type="button"
+                onClick={() => onRetry(message.content)}
+                className="rounded p-0.5 hover:bg-zinc-700 transition-colors"
+                aria-label="Retry message"
+                title="Retry — resend this message"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -34,7 +34,7 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const MAX_TOOL_ITERATIONS = 10;
 const INTENT_MODEL = 'claude-sonnet-4-20250514';
 const AGENT_MODEL = 'claude-sonnet-4-20250514';
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-1.5-flash-latest';
 
 // Budget: $5 limit. Gemini 2.0 Flash pricing (approx):
 // Input: $0.10/1M tokens, Output: $0.40/1M tokens
@@ -57,6 +57,34 @@ interface MemoryContext {
 type ClaudeMessage = Anthropic.MessageParam;
 type ClaudeTool = Anthropic.Tool;
 type ContentBlock = Anthropic.ContentBlock;
+
+/**
+ * Retry an async operation with exponential backoff on transient errors
+ * (overloaded, rate limits, 5xx). Total max wait: ~14 seconds.
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const retryable =
+        msg.includes('overloaded') ||
+        msg.includes('Overloaded') ||
+        msg.includes('rate_limit') ||
+        msg.includes('529') ||
+        msg.includes('503') ||
+        msg.includes('502');
+      if (!retryable || attempt === maxAttempts - 1) throw err;
+      const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+      logger.warn(`Retryable error (attempt ${attempt + 1}/${maxAttempts}), waiting ${delay}ms: ${msg}`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -112,7 +140,7 @@ export async function processRequest(
   while (iterations < MAX_TOOL_ITERATIONS) {
     iterations++;
 
-    const response = await client.messages.create({
+    const response = await withRetry(() => client.messages.create({
       model: AGENT_MODEL,
       max_tokens: agent.modelConfig.maxTokens,
       temperature: agent.modelConfig.temperature,
@@ -121,7 +149,7 @@ export async function processRequest(
       messages: conversationMessages,
       ...(claudeTools.length > 0 ? { tools: claudeTools } : {}),
       stream: true,
-    });
+    }));
 
     // Accumulate streamed response
     const contentBlocks: ContentBlock[] = [];
@@ -174,7 +202,7 @@ export async function processRequest(
     // Re-fetch via non-stream to get structured blocks for tool routing.
     // This is only needed when partial text suggests tool use happened in streaming.
     // For correctness, we issue a parallel non-stream call.
-    const fullResponse = await client.messages.create({
+    const fullResponse = await withRetry(() => client.messages.create({
       model: AGENT_MODEL,
       max_tokens: agent.modelConfig.maxTokens,
       temperature: agent.modelConfig.temperature,
@@ -182,7 +210,7 @@ export async function processRequest(
       system: systemPrompt,
       messages: conversationMessages,
       ...(claudeTools.length > 0 ? { tools: claudeTools } : {}),
-    });
+    }));
 
     totalInputTokens += fullResponse.usage.input_tokens;
     totalOutputTokens += fullResponse.usage.output_tokens;
@@ -306,14 +334,14 @@ export async function processRequest(
     const newFacts = await extractNewFacts(conversationMessages, agent, message.userId);
     for (const fact of newFacts) {
       const memId = uuidv4();
-      await db.collection('agents').doc(agent.id).collection('stagingMemories').doc(memId).set({
+      await db.collection('agents').doc(agent.id).collection('stagingMemory').doc(memId).set({
         id: memId,
         agentId: agent.id,
         content: fact,
         embedding: [], // Embedding generation would be a separate pipeline step
         metadata: {
           source: 'conversation' as const,
-          confidence: 0.7,
+          confidence: 0.95, // High confidence for Claude-extracted facts
           validationStatus: 'staging' as const,
           tags: [],
           createdAt: Timestamp.now(),
@@ -643,11 +671,16 @@ export function buildSystemPrompt(
       (t) => `  - ${t.name}: ${t.description}`,
     );
     sections.push(
-      `\n<available_tools>` +
-      `\nYou have access to the following tools:` +
+      `\n<tools_available>` +
+      `\nCRITICAL: You have DIRECT ACCESS to the following tools. You MUST use them to fulfill user requests.` +
+      `\nDO NOT say you lack access to email, calendar, notes, files, or system features when these tools are listed below.` +
+      `\nDO NOT ask the user to provide email content — call the email tools directly.` +
+      `\nDO NOT offer workarounds like "copy and paste" — use the tools to actually do the work.` +
+      `\n\nAvailable tools:` +
       `\n${toolLines.join('\n')}` +
-      `\nUse tools when they help accomplish the user's request.` +
-      `\n</available_tools>`,
+      `\n\nWhen the user asks you to check emails, read notes, check the calendar, manage reminders,` +
+      `\nwork with files, or control their system — IMMEDIATELY call the appropriate tool from the list above.` +
+      `\n</tools_available>`,
     );
   }
 
@@ -694,23 +727,34 @@ export async function extractNewFacts(
     })
     .join('\n');
 
-  const response = await client.messages.create({
+  const response = await withRetry(() => client.messages.create({
     model: INTENT_MODEL,
     max_tokens: 1024,
     temperature: 0,
     system:
-      'You are a memory extraction assistant. Given a conversation transcript, ' +
-      'identify discrete facts about the user that are worth remembering long-term. ' +
-      'Only extract concrete, specific facts (preferences, personal details, project info, etc.). ' +
-      'Return a JSON array of strings. If there are no new facts, return an empty array. ' +
-      'Return ONLY the JSON array, no other text.',
+      'You are a fact extraction engine. Your ONLY job is to return a JSON array.\n\n' +
+      'Extract concrete facts about the user from the conversation:\n' +
+      '- Personal details (name, location, job, etc.)\n' +
+      '- Preferences (likes, dislikes, favorite tools, etc.)\n' +
+      '- Ongoing projects or goals\n' +
+      '- Relationships or contacts mentioned\n' +
+      '- Dates, numbers, or specific plans\n\n' +
+      'STRICT OUTPUT RULES:\n' +
+      '1. Return ONLY valid JSON array syntax, starting with [ and ending with ]\n' +
+      '2. Each element is a short factual string in third person (e.g. "User lives in Beirut")\n' +
+      '3. If no concrete facts found, return exactly: []\n' +
+      '4. Do NOT include any prose, explanation, markdown, or text outside the array\n' +
+      '5. Do NOT wrap in code fences\n\n' +
+      'Example valid outputs:\n' +
+      '["User prefers dark mode", "User works as a software engineer"]\n' +
+      '[]',
     messages: [
       {
         role: 'user',
-        content: `Extract memorable facts from this conversation:\n\n${transcript}`,
+        content: `Extract facts from this conversation:\n\n${transcript}`,
       },
     ],
-  });
+  }));
 
   const textContent = response.content.find(
     (b): b is Anthropic.TextBlock => b.type === 'text',
@@ -718,14 +762,22 @@ export async function extractNewFacts(
 
   if (!textContent) return [];
 
+  // Extract JSON array from the response, even if wrapped in prose
+  const text = textContent.text.trim();
+  const arrayMatch = text.match(/\[[\s\S]*?\]/);
+  if (!arrayMatch) {
+    logger.debug('No JSON array in extracted facts', { raw: text.slice(0, 200) });
+    return [];
+  }
+
   try {
-    const facts = JSON.parse(textContent.text);
+    const facts = JSON.parse(arrayMatch[0]);
     if (Array.isArray(facts) && facts.every((f) => typeof f === 'string')) {
-      return facts;
+      return facts.filter((f) => f.trim().length > 0);
     }
     return [];
   } catch {
-    logger.warn('Failed to parse extracted facts', { raw: textContent.text });
+    logger.debug('Failed to parse extracted facts JSON', { raw: arrayMatch[0].slice(0, 200) });
     return [];
   }
 }
@@ -836,14 +888,15 @@ async function updateWorkingMemory(
       timestamp: now,
     });
 
-    // Append assistant message
-    existingMessages.push({
+    // Append assistant message (omit toolCalls if empty — Firestore rejects undefined)
+    const assistantMsg: Message = {
       id: uuidv4(),
       role: 'assistant',
       content: assistantResponse,
       timestamp: now,
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    });
+    };
+    if (toolCalls.length > 0) assistantMsg.toolCalls = toolCalls;
+    existingMessages.push(assistantMsg);
 
     // Trim to max size (keep most recent)
     const trimmed = existingMessages.slice(-maxMessages);

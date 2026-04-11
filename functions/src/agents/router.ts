@@ -17,6 +17,7 @@ import {
 import { processRequest, processRequestGemini } from './orchestrator';
 import { classifyIntent } from './orchestrator';
 import { getAvailableTools } from './mcpExecutor';
+import { loadCustomMcpTools } from '../mcp/customMcp';
 
 // ---------------------------------------------------------------------------
 // Secrets & initialization
@@ -206,51 +207,64 @@ export const agentRouter = onRequest(
       // 6. Memory hydration
       // ----------------------------------------------------------------
 
-      // L2: Semantic long-term memories (top-K relevant)
-      // In production this would use vector similarity search; here we
-      // load the most recently accessed approved memories as a baseline.
-      const semanticSnap = await db
-        .collection('agents')
-        .doc(agent.id)
-        .collection('semanticMemories')
-        .where('metadata.validationStatus', '==', 'approved')
-        .orderBy('metadata.lastAccessed', 'desc')
-        .limit(agent.memoryConfig.semanticSearchTopK)
-        .get();
+      // Memory hydration is best-effort — if queries fail (e.g. missing
+      // index), continue with empty memories rather than crashing.
+      let semanticMemories: SemanticMemory[] = [];
+      let episodicMemories: EpisodicMemory[] = [];
+      let workingMessages: Message[] = [];
 
-      const semanticMemories: SemanticMemory[] = semanticSnap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as SemanticMemory,
-      );
+      try {
+        const semanticSnap = await db
+          .collection('agents')
+          .doc(agent.id)
+          .collection('semanticMemory')
+          .where('metadata.validationStatus', '==', 'approved')
+          .orderBy('metadata.lastAccessed', 'desc')
+          .limit(agent.memoryConfig.semanticSearchTopK)
+          .get();
+        semanticMemories = semanticSnap.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as SemanticMemory,
+        );
+      } catch (memErr) {
+        logger.warn('Semantic memory hydration failed (non-fatal)', memErr);
+      }
 
-      // L3: Recent episodic memories
-      const episodicSnap = await db
-        .collection('agents')
-        .doc(agent.id)
-        .collection('episodes')
-        .orderBy('createdAt', 'desc')
-        .limit(agent.memoryConfig.episodicSearchTopK)
-        .get();
+      try {
+        const episodicSnap = await db
+          .collection('agents')
+          .doc(agent.id)
+          .collection('episodicMemory')
+          .orderBy('createdAt', 'desc')
+          .limit(agent.memoryConfig.episodicSearchTopK)
+          .get();
+        episodicMemories = episodicSnap.docs.map(
+          (d) => ({ ...d.data(), episodeId: d.data().episodeId ?? d.id }) as EpisodicMemory,
+        );
+      } catch (memErr) {
+        logger.warn('Episodic memory hydration failed (non-fatal)', memErr);
+      }
 
-      const episodicMemories: EpisodicMemory[] = episodicSnap.docs.map(
-        (d) => ({ ...d.data(), episodeId: d.data().episodeId ?? d.id }) as EpisodicMemory,
-      );
-
-      // L1: Working memory (recent conversation context)
-      const workingMemSnap = await db
-        .collection('agents')
-        .doc(agent.id)
-        .collection('workingMemory')
-        .doc(conversationId)
-        .get();
-
-      const workingMessages: Message[] = workingMemSnap.exists
-        ? (workingMemSnap.data()?.contextWindow as Message[]) ?? []
-        : [];
+      try {
+        const workingMemSnap = await db
+          .collection('agents')
+          .doc(agent.id)
+          .collection('workingMemory')
+          .doc(conversationId)
+          .get();
+        workingMessages = workingMemSnap.exists
+          ? (workingMemSnap.data()?.contextWindow as Message[]) ?? []
+          : [];
+      } catch (memErr) {
+        logger.warn('Working memory hydration failed (non-fatal)', memErr);
+      }
 
       // ----------------------------------------------------------------
-      // 7. Tool provisioning
+      // 7. Tool provisioning (built-in skills + custom MCPs)
       // ----------------------------------------------------------------
-      const tools = await getAvailableTools(agent.enabledSkills);
+      const builtinTools = await getAvailableTools(agent.enabledSkills);
+      const customMcpTools = await loadCustomMcpTools(userId);
+      const tools = [...builtinTools, ...customMcpTools];
+      logger.info(`Loaded ${builtinTools.length} built-in + ${customMcpTools.length} custom MCP tools`);
 
       // ----------------------------------------------------------------
       // 8. Build request and call orchestrator
@@ -263,9 +277,17 @@ export const agentRouter = onRequest(
       };
 
       const memoryContext = { semanticMemories, episodicMemories, workingMessages };
-      const agentResponse = agent.model === 'gemini'
-        ? await processRequestGemini(agentRequest, memoryContext, tools)
-        : await processRequest(agentRequest, memoryContext, tools);
+      let agentResponse;
+      if (agent.model === 'gemini') {
+        try {
+          agentResponse = await processRequestGemini(agentRequest, memoryContext, tools);
+        } catch (geminiErr) {
+          logger.warn('Gemini failed, falling back to Claude', geminiErr);
+          agentResponse = await processRequest(agentRequest, memoryContext, tools);
+        }
+      } else {
+        agentResponse = await processRequest(agentRequest, memoryContext, tools);
+      }
 
       // ----------------------------------------------------------------
       // 9. Persist conversation message records
@@ -287,21 +309,15 @@ export const agentRouter = onRequest(
           userId,
           title: normalizedMessage.content.slice(0, 100),
           source: normalizedMessage.source,
-          messageCount: admin.firestore.FieldValue.increment(2), // user + assistant
+          messageCount: admin.firestore.FieldValue.increment(1), // assistant only (user written by client)
           updatedAt: Timestamp.now(),
           ...(!body.conversationId ? { createdAt: Timestamp.now() } : {}),
         },
         { merge: true },
       );
 
-      // User message
-      batch.set(convRef.collection('messages').doc(normalizedMessage.id), {
-        id: normalizedMessage.id,
-        role: 'user',
-        content: normalizedMessage.content,
-        timestamp: normalizedMessage.timestamp,
-        metadata: normalizedMessage.metadata,
-      });
+      // User message is written by the client (web app) before calling this
+      // function, so we only persist the assistant response here.
 
       // Assistant message
       batch.set(convRef.collection('messages').doc(agentResponse.messageId), {
@@ -346,10 +362,25 @@ export const agentRouter = onRequest(
       const stack = err instanceof Error ? err.stack : undefined;
       logger.error('agentRouter unhandled error', { error: message, stack });
 
-      res.status(500).json({
-        error: 'Internal server error',
+      // Translate common API errors into user-friendly messages
+      let userError = 'Internal server error';
+      let statusCode = 500;
+      if (message.includes('overloaded_error') || message.includes('Overloaded')) {
+        userError = 'The AI model is currently overloaded. Please try again in a moment.';
+        statusCode = 503;
+      } else if (message.includes('rate_limit')) {
+        userError = 'Rate limit reached. Please wait a moment before sending another message.';
+        statusCode = 429;
+      } else if (message.includes('invalid_api_key') || message.includes('authentication')) {
+        userError = 'AI provider authentication failed. Check API key configuration.';
+        statusCode = 502;
+      }
+
+      res.status(statusCode).json({
+        error: userError,
         ...(process.env.NODE_ENV !== 'production' ? { detail: message } : {}),
       });
     }
   },
 );
+// touch 1775810766

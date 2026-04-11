@@ -36,6 +36,14 @@
       "collectionGroup": "semanticMemory",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "metadata.validationStatus", "order": "ASCENDING" },
+        { "fieldPath": "metadata.lastAccessed", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "semanticMemory",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "accessControl.visibility", "order": "ASCENDING" },
         { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
       ]

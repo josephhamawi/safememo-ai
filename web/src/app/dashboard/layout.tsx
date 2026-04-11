@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { where, orderBy } from 'firebase/firestore';
+import { where, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useDesktopMcp } from '@/hooks/useDesktopMcp';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { useAppStore } from '@/store';
 import type { Agent, Conversation } from '@/types';
@@ -23,12 +25,19 @@ import {
   PanelRightClose,
   ChevronDown,
   Loader2,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
+import CreateAgentDialog from '@/components/chat/CreateAgentDialog';
+import RightPanelContent from '@/components/dashboard/RightPanelContent';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
+
+  // Auto-register the desktop MCP server when running inside Electron
+  useDesktopMcp();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -50,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } = useAppStore();
 
   const [agentDropdownOpen, setAgentDropdownOpen] = useState(false);
+  const [showCreateAgent, setShowCreateAgent] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -117,6 +127,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setSelectedConversationId(null);
   };
 
+  const handleDeleteAgent = async (agentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const agentName = agents.find((a) => a.id === agentId)?.name || 'this agent';
+    if (!confirm(`Delete "${agentName}"? This will permanently remove the agent and all its conversations.`)) return;
+    try {
+      await deleteDoc(doc(db, 'agents', agentId));
+      if (selectedAgentId === agentId) {
+        const remaining = agents.filter((a) => a.id !== agentId);
+        setSelectedAgentId(remaining[0]?.id || null);
+        setSelectedConversationId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete agent:', err);
+    }
+  };
+
+  const handleRefreshChat = () => {
+    if (!selectedConversationId) return;
+    const id = selectedConversationId;
+    setSelectedConversationId(null);
+    // Re-select on next tick to force the listener to re-mount
+    setTimeout(() => setSelectedConversationId(id), 50);
+  };
+
+  const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedAgentId) return;
+    try {
+      await deleteDoc(doc(db, 'agents', selectedAgentId, 'conversations', convId));
+      if (selectedConversationId === convId) {
+        setSelectedConversationId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  };
+
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
   };
@@ -150,22 +197,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-0'
         }`}
       >
-        {/* User section */}
-        <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3">
-          {user.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt=""
-              className="h-8 w-8 rounded-full"
-            />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-600 text-xs font-medium text-white">
-              {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-            </div>
-          )}
+        {/* User section — extra top padding for macOS traffic lights */}
+        <div className="flex items-center gap-3 border-b border-zinc-800 px-4 pb-3 pt-10">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white">
+            {(profile?.displayName || user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+          </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-zinc-200">
-              {user.displayName || 'User'}
+              {profile?.displayName || user.displayName || user.email?.split('@')[0] || 'User'}
             </p>
             <p className="truncate text-xs text-zinc-500">
               {user.email}
@@ -199,28 +238,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {agentDropdownOpen && (
               <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-zinc-800 bg-zinc-900 py-1 shadow-xl">
-                {agents.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-zinc-500">No agents yet</p>
-                ) : (
-                  agents.map((agent) => (
+                {agents.map((agent) => (
+                  <div
+                    key={agent.id}
+                    className={`group flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-800 cursor-pointer ${
+                      agent.id === selectedAgentId
+                        ? 'text-orange-400'
+                        : 'text-zinc-300'
+                    }`}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id);
+                      setSelectedConversationId(null);
+                      setAgentDropdownOpen(false);
+                    }}
+                  >
+                    <Bot className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{agent.name}</span>
                     <button
-                      key={agent.id}
-                      onClick={() => {
-                        setSelectedAgentId(agent.id);
-                        setSelectedConversationId(null);
-                        setAgentDropdownOpen(false);
-                      }}
-                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-800 ${
-                        agent.id === selectedAgentId
-                          ? 'text-orange-400'
-                          : 'text-zinc-300'
-                      }`}
+                      onClick={(e) => handleDeleteAgent(agent.id, e)}
+                      className="hidden shrink-0 rounded p-0.5 text-zinc-600 transition-colors hover:bg-zinc-700 hover:text-red-400 group-hover:block"
+                      title="Delete agent"
                     >
-                      <Bot className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{agent.name}</span>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                  ))
-                )}
+                  </div>
+                ))}
+                <div className="border-t border-zinc-800 mt-1 pt-1">
+                  <button
+                    onClick={() => {
+                      setAgentDropdownOpen(false);
+                      setShowCreateAgent(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-orange-400 transition-colors hover:bg-zinc-800"
+                  >
+                    <Plus className="h-3.5 w-3.5 shrink-0" />
+                    <span>New Agent</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -256,18 +310,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ) : (
             <div className="space-y-0.5 py-1">
               {conversations.map((conv) => (
-                <button
+                <div
                   key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                  className={`group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${
                     conv.id === selectedConversationId
                       ? 'bg-zinc-800 text-zinc-100'
                       : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                   }`}
+                  onClick={() => handleSelectConversation(conv.id)}
                 >
                   <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{conv.title}</span>
-                </button>
+                  <span className="min-w-0 flex-1 truncate">{conv.title}</span>
+                  <button
+                    onClick={(e) => handleDeleteConversation(conv.id, e)}
+                    className="hidden shrink-0 rounded p-0.5 text-zinc-600 transition-colors hover:bg-zinc-700 hover:text-red-400 group-hover:block"
+                    title="Delete conversation"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -306,6 +367,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="flex-1 truncate text-sm font-medium text-zinc-200">
             {selectedAgent?.name || 'Noomachy'}
           </span>
+          {selectedConversationId && (
+            <button
+              onClick={handleRefreshChat}
+              className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+              title="Refresh chat"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
             className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
@@ -323,9 +393,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <PanelLeftClose className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
           </button>
-          <span className="text-sm font-medium text-zinc-300">
-            {selectedAgent?.name || 'Noomachy'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-zinc-300">
+              {selectedAgent?.name || 'Noomachy'}
+            </span>
+            {selectedConversationId && (
+              <button
+                onClick={handleRefreshChat}
+                className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                title="Refresh chat"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
             className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
@@ -382,29 +463,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {rightPanelTab === 'memory' && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Brain className="mb-3 h-8 w-8 text-zinc-700" />
-              <p className="text-sm text-zinc-500">Memory graph visualization</p>
-              <p className="mt-1 text-xs text-zinc-600">Select a conversation to view memory nodes</p>
-            </div>
-          )}
-          {rightPanelTab === 'tools' && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Wrench className="mb-3 h-8 w-8 text-zinc-700" />
-              <p className="text-sm text-zinc-500">Active tools</p>
-              <p className="mt-1 text-xs text-zinc-600">Tools used in the current session will appear here</p>
-            </div>
-          )}
-          {rightPanelTab === 'timeline' && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="mb-3 h-8 w-8 text-zinc-700" />
-              <p className="text-sm text-zinc-500">Session timeline</p>
-              <p className="mt-1 text-xs text-zinc-600">Agent activity timeline will appear here</p>
-            </div>
-          )}
+          <RightPanelContent
+            tab={rightPanelTab}
+            agentId={selectedAgentId}
+            conversationId={selectedConversationId}
+          />
         </div>
       </aside>
+
+      {/* Create Agent Dialog */}
+      <CreateAgentDialog
+        open={showCreateAgent}
+        onClose={() => setShowCreateAgent(false)}
+        onCreated={(agentId) => {
+          setSelectedAgentId(agentId);
+          setSelectedConversationId(null);
+        }}
+      />
     </div>
   );
 }

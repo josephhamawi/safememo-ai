@@ -5,7 +5,10 @@ import { z } from 'zod';
 import type { MCPToolResult } from '../../types';
 
 const storage = admin.storage();
-const BUCKET = storage.bucket();
+const BUCKET_NAME = process.env.FIREBASE_CONFIG
+  ? JSON.parse(process.env.FIREBASE_CONFIG).storageBucket
+  : 'noomachy.firebasestorage.app';
+const BUCKET = storage.bucket(BUCKET_NAME);
 const USER_PREFIX = 'users';
 
 // ---------------------------------------------------------------------------
