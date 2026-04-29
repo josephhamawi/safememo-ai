@@ -32,8 +32,12 @@ export async function executeTool(
   let status: 'success' | 'error' = 'success';
   let result: MCPToolResult;
 
-  // Inject userId into params for built-in tools that need it
-  const enrichedParams = { ...params, userId: params.userId ?? userId };
+  // Inject userId/agentId into params for built-in tools that need them
+  const enrichedParams = {
+    ...params,
+    userId: params.userId ?? userId,
+    agentId: params.agentId ?? agentId,
+  };
 
   try {
     // 1. Try custom MCP routing first (e.g. desktop MCP tools like mail_read_inbox)

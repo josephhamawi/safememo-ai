@@ -107,7 +107,7 @@ export class TrayManager {
         label: 'Open Web App in Browser',
         click: () => {
           const { shell } = require('electron');
-          shell.openExternal('https://noomachy.web.app');
+          shell.openExternal('https://noomachy.com');
         },
       },
       { type: 'separator' },

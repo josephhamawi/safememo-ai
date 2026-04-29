@@ -22,6 +22,7 @@ import {
   Plus,
   Menu,
   Home,
+  Zap,
   PanelLeftClose,
   PanelRightClose,
   ChevronDown,
@@ -369,6 +370,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Navigation links */}
         <nav className="border-t border-zinc-800 px-2 py-2">
           <NavLink icon={Home} label="Home" href="/dashboard" active={pathname === '/dashboard'} />
+          <NavLink icon={Zap} label="Auto-pilot" href="/dashboard/goals" active={pathname === '/dashboard/goals'} />
           <NavLink icon={Brain} label="Memory Explorer" href="/dashboard/memory" active={pathname === '/dashboard/memory'} />
           <NavLink icon={Wrench} label="Skill Marketplace" href="/dashboard/skills" active={pathname === '/dashboard/skills'} />
           <NavLink icon={Settings} label="Settings" href="/dashboard/settings" active={pathname === '/dashboard/settings'} />

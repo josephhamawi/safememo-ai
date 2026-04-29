@@ -13,11 +13,12 @@ import {
   Folder,
   Globe,
   Cpu,
-  Github,
-  ArrowLeft,
   Terminal,
   Shield,
 } from 'lucide-react';
+
+const DOWNLOAD_URL =
+  'https://storage.googleapis.com/noomachy.firebasestorage.app/downloads/Noomachy-latest.dmg';
 
 export const metadata: Metadata = {
   title: 'Download Noomachy Desktop — Local Mac Integration',
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Download Noomachy Desktop',
     description: 'Local Mac integration for your AI agent.',
-    url: 'https://noomachy.web.app/download',
+    url: 'https://noomachy.com/download',
   },
 };
 
@@ -89,23 +90,16 @@ export default function DownloadPage() {
               Free · macOS 12+ · Universal binary
             </p>
             <a
-              href="https://github.com/josephhamawi/noomachy/releases/latest"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={DOWNLOAD_URL}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all hover:shadow-orange-500/30"
             >
               <Apple className="h-4 w-4" />
               Download for macOS
             </a>
-            <a
-              href="https://github.com/josephhamawi/noomachy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
-            >
-              <Github className="h-3 w-3" />
-              Or build from source
-            </a>
+            <p className="text-center text-xs text-zinc-500">
+              First time? After moving to Applications, right-click the app and choose{' '}
+              <span className="text-zinc-300">Open</span> to bypass the Gatekeeper warning.
+            </p>
           </div>
         </div>
       </section>
@@ -197,50 +191,15 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* Build from source */}
-      <section className="border-t border-zinc-800/50 bg-zinc-950/50 px-6 py-16">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="mb-4 text-2xl font-bold">Build from source</h2>
-          <p className="mb-6 text-zinc-400">
-            Prefer to build it yourself? The desktop app is open source and easy to compile.
-          </p>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5">
-            <div className="mb-3 flex items-center gap-2 text-xs text-zinc-500">
-              <Terminal className="h-3 w-3" />
-              Terminal
-            </div>
-            <pre className="overflow-x-auto text-xs leading-relaxed text-zinc-300">
-              <code>{`# Clone the repository
-git clone https://github.com/josephhamawi/noomachy.git
-cd noomachy
-
-# Build the local MCP server
-cd desktop-mcp && npm install && npm run build && cd ..
-
-# Build the desktop app
-cd desktop-app && npm install && npm run dist
-
-# Find the .dmg in desktop-app/release/`}</code>
-            </pre>
-          </div>
-          <p className="mt-4 text-xs text-zinc-500">
-            Requires Node.js 20+ and macOS 12+. The build produces a .dmg installer in the
-            release folder.
-          </p>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="border-t border-zinc-800/50 px-6 py-20">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="mb-4 text-3xl font-bold">Ready to give your agent local powers?</h2>
           <p className="mb-8 text-zinc-400">
-            Free download. Open source. Privacy-first.
+            Free download. Privacy-first.
           </p>
           <a
-            href="https://github.com/josephhamawi/noomachy/releases/latest"
-            target="_blank"
-            rel="noopener noreferrer"
+            href={DOWNLOAD_URL}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all hover:shadow-orange-500/30"
           >
             <Apple className="h-4 w-4" />

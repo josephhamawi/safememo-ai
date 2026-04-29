@@ -1059,7 +1059,7 @@ A truly useful personal AI follows you. You ask it to do something on Telegram w
 
 ## Supported Channels in [Noomachy](/)
 
-- **Web** — the main dashboard at noomachy.web.app
+- **Web** — the main dashboard at noomachy.com
 - **Telegram** — via bot token, supports voice messages and attachments
 - **Discord** — via bot in your server, supports thread replies
 - **Slack** — via app integration, supports thread replies and DMs

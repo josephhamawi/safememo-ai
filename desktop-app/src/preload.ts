@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
  * Preload script that bridges the MCP server availability to the web app
  * loaded in the Electron BrowserWindow.
  *
- * The web app at noomachy.web.app can use window.noomachy to:
+ * The web app at noomachy.com can use window.noomachy to:
  * - Check if the desktop app is wrapping it
  * - Get the MCP server URL
  * - Check MCP server health

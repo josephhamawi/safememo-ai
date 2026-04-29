@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   title: 'Terms of Service — Noomachy',
   description:
     'The terms and conditions governing your use of the Noomachy AI agent platform.',
-  alternates: { canonical: 'https://noomachy.web.app/terms' },
+  alternates: { canonical: 'https://noomachy.com/terms' },
   openGraph: {
     title: 'Terms of Service — Noomachy',
     description: 'The terms and conditions governing your use of Noomachy.',
-    url: 'https://noomachy.web.app/terms',
+    url: 'https://noomachy.com/terms',
   },
 };
 
@@ -190,10 +190,10 @@ export default function TermsPage() {
             <p>
               Questions about these Terms? Email us at{' '}
               <a
-                href="mailto:legal@noomachy.com"
+                href="mailto:hello@kodefoundry.com"
                 className="text-orange-400 underline underline-offset-2"
               >
-                legal@noomachy.com
+                hello@kodefoundry.com
               </a>
               .
             </p>

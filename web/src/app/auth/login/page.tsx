@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Github, Mail, Lock, Loader2, User, Bot } from 'lucide-react';
+import { toast } from '@/components/ui/Toast';
 
 type AuthTab = 'signin' | 'signup';
 
@@ -21,7 +22,12 @@ export default function LoginPage() {
 
   const clearError = () => setError(null);
 
-  const handleSuccess = () => {
+  const handleSuccess = (provider?: string) => {
+    toast({
+      type: 'success',
+      title: tab === 'signup' ? 'Welcome to Noomachy!' : 'Welcome back!',
+      message: provider ? `Signed in with ${provider}.` : 'You are signed in.',
+    });
     router.push('/dashboard');
   };
 
@@ -29,7 +35,7 @@ export default function LoginPage() {
     clearError();
     try {
       await signInWithGoogle();
-      handleSuccess();
+      handleSuccess('Google');
     } catch (err: any) {
       setError(err?.message || 'Failed to sign in with Google');
     }

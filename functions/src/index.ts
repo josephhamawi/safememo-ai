@@ -23,6 +23,9 @@ export { mcpServer } from './mcp/server';
 // Memory Functions
 export { consolidateEpisodes } from './memory/consolidation';
 
+// Auto-pilot Goals
+export { runDueGoals } from './goals/runner';
+
 // Seed
 export { seedSkills } from './seedSkills';
 

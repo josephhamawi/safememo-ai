@@ -32,9 +32,9 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 // ---------------------------------------------------------------------------
 
 const MAX_TOOL_ITERATIONS = 10;
-const INTENT_MODEL = 'claude-sonnet-4-20250514';
-const AGENT_MODEL = 'claude-sonnet-4-20250514';
-const GEMINI_MODEL = 'gemini-1.5-flash-latest';
+const INTENT_MODEL = 'claude-sonnet-4-6';
+const AGENT_MODEL = 'claude-sonnet-4-6';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Budget: $5 limit. Gemini 2.0 Flash pricing (approx):
 // Input: $0.10/1M tokens, Output: $0.40/1M tokens

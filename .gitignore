@@ -35,6 +35,10 @@ functions/.env.local
 *.swp
 *.swo
 
+# Tooling state (Claude Code, BMAD)
+.claude/
+_bmad/
+
 # OS
 .DS_Store
 Thumbs.db

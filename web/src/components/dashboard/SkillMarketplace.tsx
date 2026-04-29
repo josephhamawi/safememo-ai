@@ -14,6 +14,7 @@ import {
 import { db, auth } from '@/lib/firebase';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { useAppStore } from '@/store';
+import { useAuth } from '@/hooks/useAuth';
 import type { Skill } from '@/types';
 import {
   Search,
@@ -76,10 +77,20 @@ function TrustScoreBadge({ score }: { score: number }) {
   );
 }
 
+interface CustomMcpDoc {
+  name: string;
+  description?: string;
+  endpoint: string;
+  apiKey?: string | null;
+  enabled?: boolean;
+  isAutoManaged?: boolean;
+}
+
 export default function SkillMarketplace() {
   const selectedAgentId = useAppStore((s) => s.selectedAgentId);
   const agents = useAppStore((s) => s.agents);
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const { user } = useAuth();
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -91,6 +102,36 @@ export default function SkillMarketplace() {
     loading,
     error,
   } = useFirestoreCollection<Skill>('skills');
+
+  // Load this user's custom MCP servers (from subcollection)
+  const { data: customMcps } = useFirestoreCollection<CustomMcpDoc>(
+    user ? `users/${user.uid}/customMcps` : '',
+    { enabled: !!user }
+  );
+
+  // Convert custom MCPs into Skill-shaped objects so they render in the same grid
+  const customAsSkills: Skill[] = useMemo(
+    () =>
+      customMcps.map((mcp) => ({
+        id: `custom_${mcp.id}`,
+        name: mcp.name,
+        description: mcp.description || `Custom MCP at ${mcp.endpoint}`,
+        version: '1.0.0',
+        author: 'You',
+        trustScore: 1.0,
+        permissions: ['network'] as Skill['permissions'],
+        category: 'custom',
+        tags: ['custom-mcp', mcp.isAutoManaged ? 'auto-managed' : 'manual'],
+        installCount: 0,
+      })),
+    [customMcps]
+  );
+
+  // Merge custom MCPs with the global skills marketplace
+  const allSkills: Skill[] = useMemo(
+    () => [...customAsSkills, ...skills],
+    [customAsSkills, skills]
+  );
 
   // Derive categories from loaded skills
   const categories = useMemo(() => {

@@ -249,3 +249,33 @@ export interface MemoryGraph {
   nodes: MemoryNode[];
   links: MemoryLink[];
 }
+
+// ============================================================
+// Auto-Pilot Goals
+// ============================================================
+
+export type GoalStatus = 'active' | 'paused' | 'completed' | 'error';
+
+export interface Goal {
+  id: string;
+  ownerId: string;
+  agentId: string;
+  title: string;
+  prompt: string;
+  schedule: string;
+  timezone?: string;
+  status: GoalStatus;
+  nextRunAt: Timestamp;
+  lastRunAt?: Timestamp;
+  lastResult?: {
+    summary: string;
+    error?: string;
+    runId: string;
+    finishedAt: Timestamp;
+  };
+  runCount: number;
+  errorCount: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy?: 'user' | 'agent';
+}

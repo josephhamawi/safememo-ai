@@ -313,3 +313,48 @@ export interface StreamToken {
   done: boolean;
   timestamp: Timestamp;
 }
+
+// ============================================================
+// Auto-Pilot Goals
+// ============================================================
+
+export type GoalStatus = 'active' | 'paused' | 'completed' | 'error';
+
+export interface Goal {
+  id: string;
+  ownerId: string;
+  agentId: string;
+  title: string;
+  prompt: string;
+  schedule: string; // e.g. "every 30m", "daily 08:30", "weekly Mon 09:00", "once"
+  /** IANA timezone (e.g. "America/New_York"). Used for daily/weekly schedules; defaults to UTC if absent. */
+  timezone?: string;
+  status: GoalStatus;
+  nextRunAt: Timestamp;
+  lastRunAt?: Timestamp;
+  lastResult?: {
+    summary: string;
+    error?: string;
+    runId: string;
+    finishedAt: Timestamp;
+  };
+  runCount: number;
+  errorCount: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  /** Audit field: 'user' (default) or 'agent' if created via schedule_followup */
+  createdBy?: 'user' | 'agent';
+}
+
+export interface GoalRun {
+  id: string;
+  goalId: string;
+  startedAt: Timestamp;
+  finishedAt?: Timestamp;
+  status: 'running' | 'success' | 'error';
+  conversationId?: string;
+  messageId?: string;
+  responseSummary?: string;
+  toolCallCount?: number;
+  error?: string;
+}

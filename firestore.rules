@@ -135,5 +135,26 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow write: if isAdmin() || isOwner(userId);
     }
+
+    // Auto-pilot Goals
+    match /goals/{goalId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid;
+      // Users can change schedule/prompt/status, but cannot move ownership
+      // or fabricate run history (those are server-side fields).
+      allow update: if isAuthenticated()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isAuthenticated()
+        && resource.data.ownerId == request.auth.uid;
+
+      // Run history (read by owner, written by Cloud Function only)
+      match /runs/{runId} {
+        allow read: if isAuthenticated()
+          && get(/databases/$(database)/documents/goals/$(goalId)).data.ownerId == request.auth.uid;
+        allow write: if isAdmin();
+      }
+    }
   }
 }

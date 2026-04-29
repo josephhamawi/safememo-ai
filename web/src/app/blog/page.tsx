@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: 'Noomachy Blog — AI Agents, Memory, and the Future of Personal AI',
     description:
       'In-depth guides on AI agents, sovereign memory, MCP tooling, and building personal AI assistants.',
-    url: 'https://noomachy.web.app/blog',
+    url: 'https://noomachy.com/blog',
     siteName: 'Noomachy',
     images: [{ url: '/og-image.png', width: 659, height: 659 }],
     type: 'website',

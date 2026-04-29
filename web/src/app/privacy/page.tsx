@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — Noomachy',
   description:
     'How Noomachy collects, uses, and protects your data. Sovereign memory means you own your information.',
-  alternates: { canonical: 'https://noomachy.web.app/privacy' },
+  alternates: { canonical: 'https://noomachy.com/privacy' },
   openGraph: {
     title: 'Privacy Policy — Noomachy',
     description: 'How Noomachy collects, uses, and protects your data.',
-    url: 'https://noomachy.web.app/privacy',
+    url: 'https://noomachy.com/privacy',
   },
 };
 
@@ -257,10 +257,10 @@ export default function PrivacyPage() {
               to object, right to lodge a complaint with a supervisory authority). Contact us
               at{' '}
               <a
-                href="mailto:privacy@noomachy.com"
+                href="mailto:hello@kodefoundry.com"
                 className="text-orange-400 underline underline-offset-2"
               >
-                privacy@noomachy.com
+                hello@kodefoundry.com
               </a>{' '}
               to exercise any of these rights.
             </p>
@@ -290,10 +290,10 @@ export default function PrivacyPage() {
             <p className="mt-3">
               No system is 100% secure. If you discover a vulnerability, please report it to{' '}
               <a
-                href="mailto:security@noomachy.com"
+                href="mailto:hello@kodefoundry.com"
                 className="text-orange-400 underline underline-offset-2"
               >
-                security@noomachy.com
+                hello@kodefoundry.com
               </a>
               .
             </p>
@@ -322,10 +322,10 @@ export default function PrivacyPage() {
             <p>
               Questions about privacy? Email{' '}
               <a
-                href="mailto:privacy@noomachy.com"
+                href="mailto:hello@kodefoundry.com"
                 className="text-orange-400 underline underline-offset-2"
               >
-                privacy@noomachy.com
+                hello@kodefoundry.com
               </a>
               .
             </p>

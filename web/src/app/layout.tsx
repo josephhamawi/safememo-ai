@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Noomachy - AI Agent Platform',
     description: 'AI agents with sovereign memory. Build intelligent agents that learn, remember, and use tools autonomously.',
-    url: 'https://noomachy.web.app',
+    url: 'https://noomachy.com',
     siteName: 'Noomachy',
     images: [{ url: '/og-image.png', width: 659, height: 659 }],
     type: 'website',

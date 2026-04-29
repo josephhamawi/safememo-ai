@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { POSTS } from '@/content/blog/posts';
 
-const BASE_URL = 'https://noomachy.web.app';
+const BASE_URL = 'https://noomachy.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [

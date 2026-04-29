@@ -29,6 +29,9 @@ import {
   queryCollectionSchema,
 } from './tools/databaseQuery';
 
+import { getWeather, getWeatherSchema } from './tools/weather';
+import { scheduleFollowup, scheduleFollowupSchema } from './tools/scheduleFollowup';
+
 const db = admin.firestore();
 
 // ---------------------------------------------------------------------------
@@ -288,6 +291,56 @@ export function registerBuiltinTools(): void {
       );
     },
     queryCollectionSchema,
+  );
+
+  // -- Weather -------------------------------------------------------------
+
+  register(
+    'get_weather',
+    'Get current weather conditions for any location worldwide',
+    {
+      type: 'object',
+      properties: {
+        location: { type: 'string', description: 'City name, optionally with country (e.g. "London, UK", "Beirut")' },
+        units: { type: 'string', enum: ['metric', 'imperial'], default: 'metric' },
+      },
+      required: ['location'],
+    },
+    async (params) => {
+      const p = getWeatherSchema.parse(params);
+      return getWeather(p.location, p.units);
+    },
+    getWeatherSchema,
+  );
+
+  // -- Auto-pilot: agent-initiated scheduling -----------------------------
+
+  register(
+    'schedule_followup',
+    'Schedule a future task to run autonomously. Use when the user asks you to remind them, follow up later, or run something on a recurring schedule. The task fires by re-invoking you with the prompt at the scheduled time(s).',
+    {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Short label visible to the user (max 120 chars).',
+        },
+        prompt: {
+          type: 'string',
+          description: 'What you should do when the goal fires. Be specific and self-contained — you will receive only this prompt at run time.',
+        },
+        schedule: {
+          type: 'string',
+          description: 'When to run. Formats: "every 15m", "every 2h", "daily 08:30", "weekly Mon 09:00", or "once". Times are UTC unless the goal has a timezone configured.',
+        },
+      },
+      required: ['title', 'prompt', 'schedule'],
+    },
+    async (params) => {
+      const p = scheduleFollowupSchema.parse(params);
+      return scheduleFollowup(p);
+    },
+    scheduleFollowupSchema,
   );
 
   logger.info('Built-in tools registered', { count: registry.size });

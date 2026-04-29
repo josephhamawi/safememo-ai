@@ -27,7 +27,7 @@ const mcpManager = new McpManager();
 const tunnelManager = new TunnelManager(3939);
 const trayManager = new TrayManager(mcpManager);
 
-const WEB_APP_URL = 'https://noomachy.web.app';
+const WEB_APP_URL = 'https://noomachy.com';
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
 

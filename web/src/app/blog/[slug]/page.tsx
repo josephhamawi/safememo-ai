@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!post) return { title: 'Post not found' };
 
-  const url = `https://noomachy.web.app/blog/${post.slug}`;
+  const url = `https://noomachy.com/blog/${post.slug}`;
 
   return {
     title: `${post.title} — Noomachy`,
@@ -69,12 +69,12 @@ export default async function BlogPostPage({ params }: PageProps) {
     publisher: {
       '@type': 'Organization',
       name: 'Noomachy',
-      logo: { '@type': 'ImageObject', url: 'https://noomachy.web.app/icon.png' },
+      logo: { '@type': 'ImageObject', url: 'https://noomachy.com/icon.png' },
     },
-    image: 'https://noomachy.web.app/og-image.png',
+    image: 'https://noomachy.com/og-image.png',
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://noomachy.web.app/blog/${post.slug}`,
+      '@id': `https://noomachy.com/blog/${post.slug}`,
     },
     keywords: post.tags.join(', '),
   };

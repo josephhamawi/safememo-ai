@@ -26,6 +26,7 @@ import { loadBehaviorProfile, updateBehaviorProfile } from '../memory/behaviorLe
 
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const openWeatherApiKey = defineSecret('OPENWEATHER_API_KEY');
 
 const db = admin.firestore();
 
@@ -36,6 +37,8 @@ const db = admin.firestore();
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://noomachy.com',
+  'https://www.noomachy.com',
   'https://noomachy.web.app',
   'https://noomachy.firebaseapp.com',
 ];
@@ -59,7 +62,7 @@ function setCorsHeaders(
 
 export const agentRouter = onRequest(
   {
-    secrets: [anthropicApiKey, geminiApiKey],
+    secrets: [anthropicApiKey, geminiApiKey, openWeatherApiKey],
     timeoutSeconds: 300,
     memory: '1GiB',
     region: 'us-central1',
