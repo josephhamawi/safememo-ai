@@ -20,9 +20,10 @@ import { useAppStore } from '@/store';
 import type { Goal, GoalStatus } from '@/types';
 import {
   Zap, Plus, Pause, Play, Trash2, Clock, AlertTriangle,
-  CheckCircle2, Loader2, ArrowRight, Bot,
+  CheckCircle2, Loader2, ArrowRight, Bot, Apple,
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
+import { GOAL_PRESETS, type GoalPreset } from '@/lib/goalPresets';
 
 const SCHEDULE_PRESETS = [
   { label: 'Every 15 minutes', value: 'every 15m' },
@@ -156,6 +157,17 @@ export default function GoalsPage() {
   async function handleDelete(goal: Goal) {
     if (!confirm(`Delete "${goal.title}"? This stops future runs and removes run history.`)) return;
     await deleteDoc(doc(db, 'goals', goal.id));
+  }
+
+  function applyPreset(preset: GoalPreset) {
+    setTitle(preset.title);
+    setPrompt(preset.prompt);
+    setSchedule(preset.schedule);
+    setShowCreate(true);
+    // Bring the form into view
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
 
   return (
@@ -298,6 +310,49 @@ export default function GoalsPage() {
           </div>
         </form>
       )}
+
+      {/* Preset gallery */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Start from a preset
+          </h2>
+          <span className="text-xs text-zinc-600">Click a card to prefill the form</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {GOAL_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => applyPreset(preset)}
+              className="group flex flex-col items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-left transition-colors hover:border-orange-500/40 hover:bg-zinc-900"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400">
+                  <preset.icon className="h-4 w-4" />
+                </div>
+                <h3 className="text-sm font-semibold text-zinc-100 group-hover:text-orange-300">
+                  {preset.title}
+                </h3>
+              </div>
+              <p className="line-clamp-2 text-xs text-zinc-500">{preset.description}</p>
+              <div className="mt-auto flex flex-wrap items-center gap-2 pt-1 text-[10px] text-zinc-500">
+                <span className="rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono">
+                  {preset.schedule}
+                </span>
+                {preset.needsDesktop && (
+                  <span
+                    className="flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-400"
+                    title="Requires the Noomachy macOS desktop app to be running"
+                  >
+                    <Apple className="h-2.5 w-2.5" />
+                    Needs desktop app
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* List */}
       {loading ? (

@@ -638,6 +638,19 @@ export function buildSystemPrompt(
     `\n</agent_config>`,
   );
 
+  // Wall-clock context — refreshed on every request so the agent always
+  // knows "now" without resorting to web fetches or guessing.
+  const now = new Date();
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  sections.push(
+    `\n<current_context>` +
+    `\nCurrent UTC datetime: ${now.toISOString()}` +
+    `\nUnix timestamp (seconds): ${Math.floor(now.getTime() / 1000)}` +
+    `\nDay of week (UTC): ${weekday}` +
+    `\nUse this when the user asks for the current time, date, or day. Do not call code_execute or web_fetch just to get the time.` +
+    `\n</current_context>`,
+  );
+
   // Learned behavior patterns (ML-style adaptive learning)
   if (memories.behaviorInsights && memories.behaviorInsights.length > 0) {
     sections.push(
