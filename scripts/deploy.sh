@@ -18,6 +18,30 @@ echo "Project: $PROJECT_ID"
 echo "Target:  $DEPLOY_TARGET"
 echo ""
 
+# Pre-flight: warn if required Firebase secrets aren't set. Missing secrets
+# surface here instead of as a 500 at runtime when a function tries to read them.
+if [[ "$DEPLOY_TARGET" == "all" || "$DEPLOY_TARGET" == "functions" ]]; then
+  REQUIRED_SECRETS=(ANTHROPIC_API_KEY GEMINI_API_KEY AUDIT_SHARE_SECRET)
+  MISSING=()
+  for s in "${REQUIRED_SECRETS[@]}"; do
+    if ! firebase functions:secrets:access "$s" --project "$PROJECT_ID" >/dev/null 2>&1; then
+      MISSING+=("$s")
+    fi
+  done
+  if [[ ${#MISSING[@]} -gt 0 ]]; then
+    echo "WARNING: missing Firebase secrets: ${MISSING[*]}"
+    echo "         Set with: firebase functions:secrets:set <NAME> --project $PROJECT_ID"
+    echo "         AUDIT_SHARE_SECRET — generate with: openssl rand -hex 48"
+    echo ""
+    read -r -p "Continue anyway? [y/N] " ANSWER
+    if [[ "$ANSWER" != "y" && "$ANSWER" != "Y" ]]; then
+      echo "Aborted."
+      exit 1
+    fi
+    echo ""
+  fi
+fi
+
 # Build functions
 if [[ "$DEPLOY_TARGET" == "all" || "$DEPLOY_TARGET" == "functions" ]]; then
   echo "Building Cloud Functions..."

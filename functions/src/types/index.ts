@@ -107,7 +107,7 @@ export interface EpisodicMemory {
 // Normalized Message (Channel Adapter)
 // ============================================================
 
-export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'whatsapp' | 'web';
+export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'web';
 
 export interface Attachment {
   id: string;
@@ -161,7 +161,6 @@ export interface Agent {
     telegram?: { chatId: string; enabled: boolean };
     discord?: { channelId: string; enabled: boolean };
     slack?: { channelId: string; enabled: boolean };
-    whatsapp?: { phoneNumber: string; enabled: boolean };
     web: { enabled: boolean };
   };
   status: 'active' | 'paused' | 'archived';
@@ -235,9 +234,16 @@ export interface AuditLog {
   userId: string;
   agentId: string;
   action: string;
+  /** When set, links this entry into the per-memory hash chain. */
+  memoryId?: string;
   skillId?: string;
   params?: Record<string, unknown>;
+  /** SHA-256(params + result). Per-entry tamper-evidence. */
   resultHash?: string;
+  /** Hash of the previous chain entry for this memoryId (null = chain head). */
+  previousChainHash?: string | null;
+  /** SHA-256(previousChainHash || resultHash). The chain anchor. */
+  chainHash?: string;
   status: 'success' | 'error';
   duration: number;
   timestamp: Timestamp;

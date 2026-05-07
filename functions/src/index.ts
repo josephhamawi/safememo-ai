@@ -20,12 +20,12 @@ export { slackWebhook } from './channels/slack';
 // MCP Server
 export { mcpServer } from './mcp/server';
 
-// Memory Functions — scheduled consolidation REMOVED (cost optimization 2026-05-03)
-// Source preserved in memory/consolidation.ts. Was every 6h on Cloud Scheduler.
+// Audit share endpoint (signed-token, public) + token minting (auth'd)
+export { auditShare } from './audit/share';
+export { mintAuditShareToken } from './audit/mintToken';
 
-// Auto-pilot Goals — scheduled runner REMOVED (cost optimization 2026-05-03)
-// Source preserved in goals/runner.ts. Was every 1 minute — primary cost driver.
-// To revive, trigger via cron-job.org against an onRequest endpoint, never re-add onSchedule.
+// Memory decision callables (auth'd) — approve/reject/purge memories
+export { decideMemory, purgeMemory } from './memory/decideCallable';
 
 // Seed
 export { seedSkills } from './seedSkills';
@@ -35,4 +35,3 @@ export {
   onStagingMemoryCreated,
   onMemoryApproved,
 } from './triggers';
-// force deploy 1775764567

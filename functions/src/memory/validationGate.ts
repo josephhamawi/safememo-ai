@@ -140,14 +140,18 @@ async function checkContradictions(
       );
 
       if (sharedTags.length > 0) {
-        // Content is topically related but different — potential contradiction
+        // Plain-English explanation surfaced directly to the human reviewer.
+        const conflictSnippet = mem.content.length > 140
+          ? mem.content.slice(0, 137) + '...'
+          : mem.content;
+        const similarityPct = Math.round(score * 100);
         return {
           hasContradiction: true,
           conflictingMemoryId: mem.id,
           explanation:
-            `Potential contradiction with memory ${mem.id} ` +
-            `(similarity ${score.toFixed(3)}, shared tags: ${sharedTags.join(', ')}). ` +
-            `Manual review recommended.`,
+            `This memory conflicts with: "${conflictSnippet}" ` +
+            `(${similarityPct}% similar, both tagged ${sharedTags.map((t) => `"${t}"`).join(', ')}). ` +
+            `Approve only if both can be true at once.`,
         };
       }
     }

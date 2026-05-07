@@ -41,14 +41,6 @@
       ]
     },
     {
-      "collectionGroup": "semanticMemory",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "accessControl.visibility", "order": "ASCENDING" },
-        { "fieldPath": "metadata.createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "stagingMemory",
       "queryScope": "COLLECTION",
       "fields": [
@@ -73,19 +65,20 @@
       ]
     },
     {
-      "collectionGroup": "goals",
+      "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "nextRunAt", "order": "ASCENDING" }
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "memoryId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "goals",
+      "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "ownerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "memoryId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     }
   ],

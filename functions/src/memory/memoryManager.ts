@@ -153,10 +153,14 @@ export async function updateWorkingMemory(
  */
 export async function cleanupExpiredWorkingMemory(
   agentId: string,
+  maxBatchSize = 200,
 ): Promise<number> {
   const now = Timestamp.now();
   const colRef = db().collection(paths.workingMemory(agentId));
-  const expired = await colRef.where('ttl', '<', now).get();
+  const expired = await colRef
+    .where('ttl', '<', now)
+    .limit(maxBatchSize)
+    .get();
 
   if (expired.empty) {
     return 0;

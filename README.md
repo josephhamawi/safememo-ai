@@ -1,211 +1,171 @@
 # Noomachy
 
-**Next-generation AI Agent Platform with Sovereign Memory**
+**Tamper-proof memory for compliance-bound AI agents.**
 
-Noomachy is a multi-tenant AI agent platform built on Firebase's serverless architecture. It features a three-layer sovereign memory system, real-time collaborative agents, MCP-based skill execution, and multi-channel deployment.
+Noomachy is the only agent memory layer with human-in-the-loop fact validation,
+SHA-256 hash-chained audit trails, and tenant isolation by default. Built for
+legal, healthcare, and finance teams who need every fact their AI agents recall
+to be defensible after the fact.
+
+## What's different
+
+Most agent memory layers passively extract facts and write them straight to
+storage. When an auditor asks "where did this claim come from," there's no
+chain to follow.
+
+Noomachy works differently:
+
+1. **Validation gate.** No memory reaches long-term storage without passing
+   through a staging queue. Cosine-similarity dedup, contradiction detection,
+   and plain-English explanations let a human approve or reject each fact.
+2. **Hash-chained audit log.** Every approval, rejection, and tool call is
+   sealed with SHA-256 and linked to its predecessor. Modifying any earlier
+   entry invalidates every later hash. Verification is one click.
+3. **Per-tenant cost guardrail.** A daily USD cap (default $5) shuts off
+   expensive operations before they become a Firebase bill. Override per
+   tenant when needed.
+4. **Signed share links for auditors.** "Share audit trail" mints a 7-day
+   HMAC-signed URL that exposes a single memory's lineage to outside counsel
+   without provisioning accounts.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Firebase Hosting                       │
-│              Next.js 14 (App Router)                     │
-│  ┌──────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ Sidebar   │  │ Chat         │  │ Right Panel       │  │
-│  │ - Agents  │  │ - Messages   │  │ - Memory Graph    │  │
-│  │ - Convos  │  │ - Streaming  │  │ - Tools           │  │
-│  │ - Skills  │  │ - Input      │  │ - Timeline        │  │
-│  └──────────┘  └──────────────┘  └───────────────────┘  │
+│                Next.js dashboard                        │
+│  Memory explorer · Validation queue · Audit trail UI    │
 └─────────────────────┬───────────────────────────────────┘
-                      │ Firestore Real-time Sync
+                      │ Firestore real-time sync
 ┌─────────────────────┴───────────────────────────────────┐
-│               Cloud Functions (Gen 2)                    │
-│  ┌────────────┐ ┌───────────┐ ┌────────────────────┐   │
-│  │ Agent      │ │ Channel   │ │ MCP Server         │   │
-│  │ Router     │ │ Adapters  │ │ - file_operations  │   │
-│  │ Orchestr.  │ │ Telegram  │ │ - web_search       │   │
-│  │ Memory Mgr │ │ Discord   │ │ - code_execution   │   │
-│  │            │ │ Slack     │ │ - database_query   │   │
-│  └────────────┘ └───────────┘ └────────────────────┘   │
+│           Cloud Functions (Gen 2, Node 20)              │
+│  agentRouter   validationGate   auditShare/mintToken    │
+│  budgetGuard   memoryManager    auditLogger (chain)     │
 └─────────────────────┬───────────────────────────────────┘
                       │
 ┌─────────────────────┴───────────────────────────────────┐
-│                    Data Layer                             │
-│                                                          │
-│  Firestore (Native)           Vertex AI Vector Search    │
-│  ┌─────────────────┐         ┌───────────────────┐      │
-│  │ L1: Working     │ ←sync→  │ 768-dim Embeddings │      │
-│  │ L2: Semantic    │ ←search→│ textembedding-     │      │
-│  │ L3: Episodic    │         │ gecko@003          │      │
-│  └─────────────────┘         └───────────────────┘      │
-│                                                          │
-│  Firebase Auth    Cloud Storage    Audit Logs            │
-│  (Google/GitHub)  (Attachments)    (Tamper-proof)        │
+│                Data layer                                │
+│  Firestore (multi-tenant, isolated by ownerId)          │
+│  Vertex AI textembedding-gecko (768-dim, capped input)  │
+│  auditLogs (append-only, hash-chained per memoryId)     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Three-Layer Sovereign Memory
+## Three-layer memory
 
 | Layer | Name | Purpose | TTL |
 |-------|------|---------|-----|
-| L1 | Working Memory | Active session context, last 20 messages | 24 hours |
-| L2 | Semantic Memory | Long-term knowledge with vector embeddings | Permanent |
-| L3 | Episodic Memory | Decision logs, tool call history | Permanent |
+| L1 | Working memory | Active session context, last 20 messages | 24 hours |
+| L2 | Semantic memory | Validated long-term facts. Goes through the gate. | Permanent (or one-click purge) |
+| L3 | Episodic memory | Append-only decision log. Append-only. | Permanent |
 
-**Key Innovation: Validation Gate**
-All L2 writes go through a human-in-the-loop validation workflow. New facts are staged, checked for duplicates/contradictions, and require approval before becoming permanent knowledge. Auto-approval rules reduce friction for high-confidence, non-contradictory data.
+## Trust posture
 
-## Tech Stack
+Noomachy ships the technical controls compliance teams ask for. We are not
+yet certified — certification depends on your specific deployment. The
+substrate is here; your auditor signs off.
 
-- **Frontend:** Next.js 14, TypeScript, Tailwind CSS, D3.js
-- **Backend:** Firebase Cloud Functions Gen 2, Node.js 20
-- **Database:** Firestore (Native mode)
-- **Vector Search:** Vertex AI (textembedding-gecko@003, 768 dims)
-- **AI:** Anthropic Claude (primary), Google Gemini (fallback)
-- **Auth:** Firebase Authentication (Google, GitHub, Email)
-- **Storage:** Firebase Cloud Storage
-- **Tools:** MCP (Model Context Protocol) with sandboxed execution
+- **Tamper-evident audit log** — SHA-256 chained per memoryId.
+- **Tenant-isolated, encrypted at rest** — Firestore security rules enforce
+  cross-tenant blocks; encryption at rest is on by default.
+- **Right-to-erasure** — TTL on working memory, manual purge on semantic
+  memory, every deletion recorded in the audit chain.
 
-## Quick Start
+## Cost guardrails
 
-### Prerequisites
+Each tenant has a per-day USD cap. Default is `$5/day`, set in
+`functions/src/cost/budgetGuard.ts:MAX_DAILY_COST_USD`. Per-tenant overrides
+live in `users/{tenantId}.dailyCapOverrideUSD`.
 
-- Node.js 20+
-- Firebase CLI (`npm i -g firebase-tools`)
-- Firebase project (create at [console.firebase.google.com](https://console.firebase.google.com))
+When a tenant approaches 80% of cap, every LLM/embedding call logs a warning.
+At 100%, the next request fails closed with HTTP 429 and a clear error message.
+The cap resets at 00:00 UTC.
 
-### Setup
+See `COST.md` for the cost model and tuning guide.
+
+## Tech stack
+
+- **Frontend** Next.js 16, React 19, TypeScript, Tailwind
+- **Backend** Firebase Cloud Functions Gen 2, Node 20
+- **Database** Firestore (Native mode), append-only audit collection
+- **Vector search** Vertex AI textembedding-gecko@003 (768-dim)
+- **LLM** Anthropic Claude (primary), Google Gemini (cost-tier fallback)
+- **Auth** Firebase Authentication
+
+## Setup
 
 ```bash
-# Clone and install
-cd noomachy
+# Install
 cd functions && npm install && cd ..
 cd web && npm install && cd ..
 
-# Configure environment
+# Configure
 cp .env.example .env
-# Edit .env with your Firebase config and API keys
-
 cp functions/.env.example functions/.env
-# Edit functions/.env with your Anthropic API key and other secrets
+
+# Set required secrets
+firebase functions:secrets:set ANTHROPIC_API_KEY
+firebase functions:secrets:set GEMINI_API_KEY
+firebase functions:secrets:set AUDIT_SHARE_SECRET   # any high-entropy 32+ byte string
+firebase functions:secrets:set MCP_SERVER_SECRET
+firebase functions:secrets:set SERPER_API_KEY
 ```
 
-### Local Development (Emulators)
+## Local dev
 
 ```bash
-# Start Firebase emulators
-./scripts/emulator.sh
-
-# In another terminal, start Next.js dev server
-cd web && npm run dev
-
-# (Optional) Seed sample data
-cd seed && npx ts-node seed.ts
+./scripts/emulator.sh                   # Firebase emulators
+cd web && npm run dev                   # Next.js
+cd seed && npx ts-node legal-demo.ts    # Seed legal contract review demo
 ```
 
-The emulator UI is at http://localhost:4000 and the web app at http://localhost:3000.
-
-### Deploy to Firebase
+## Deploy
 
 ```bash
-# Deploy everything
 ./scripts/deploy.sh all
-
-# Or deploy individually
+# or selectively:
 ./scripts/deploy.sh functions
 ./scripts/deploy.sh hosting
 ./scripts/deploy.sh rules
 ./scripts/deploy.sh indexes
 ```
 
-### Set Firebase Secrets
-
-```bash
-firebase functions:secrets:set ANTHROPIC_API_KEY
-firebase functions:secrets:set MCP_SERVER_SECRET
-firebase functions:secrets:set SERPER_API_KEY
-# Add channel tokens as needed
-```
-
-## Project Structure
+## Project layout
 
 ```
 noomachy/
-├── firebase.json              # Firebase configuration
-├── firestore.rules            # Security rules
-├── firestore.indexes.json     # Composite indexes
-├── storage.rules              # Storage security rules
-├── functions/                 # Cloud Functions (backend)
-│   └── src/
-│       ├── agents/            # Router, orchestrator, MCP executor
-│       ├── channels/          # Telegram, Discord, Slack adapters
-│       ├── mcp/               # MCP server + built-in tools
-│       │   └── tools/         # file_operations, web_search, etc.
-│       ├── memory/            # Memory manager, validation, consolidation
-│       ├── security/          # Sandbox, audit logger
-│       ├── types/             # Shared TypeScript interfaces
-│       ├── triggers.ts        # Firestore triggers
-│       └── index.ts           # Function exports
-├── web/                       # Next.js frontend
-│   └── src/
-│       ├── app/               # App Router pages
-│       │   ├── auth/          # Login page
-│       │   ├── dashboard/     # Main dashboard
-│       │   └── api/           # API routes
-│       ├── components/        # React components
-│       │   ├── chat/          # Chat interface
-│       │   ├── memory/        # Memory graph, explorer, validation
-│       │   ├── collaborative/ # Presence, timeline
-│       │   └── dashboard/     # Notifications, skill marketplace
-│       ├── hooks/             # Custom React hooks
-│       ├── store/             # Zustand state management
-│       ├── lib/               # Firebase client config
-│       └── types/             # Client-side types
-├── seed/                      # Sample data for development
-├── scripts/                   # Deployment and dev scripts
-└── README.md
+├── functions/src/
+│   ├── agents/          # router, orchestrator, mcpExecutor
+│   ├── audit/           # share endpoint, mintToken (signed links)
+│   ├── channels/        # telegram, discord, slack adapters
+│   ├── cost/            # budgetGuard.ts (per-tenant daily cap)
+│   ├── mcp/             # MCP server + built-in tools
+│   ├── memory/          # memoryManager, validationGate, vectorSearch
+│   ├── security/        # auditLogger (hash-chained)
+│   └── triggers.ts      # Firestore triggers for staging → semantic
+├── web/src/
+│   ├── app/
+│   │   ├── audit/share/                      # public signed-link viewer
+│   │   ├── audit/[agentId]/[memoryId]/       # owner audit trail
+│   │   ├── dashboard/memory/                 # memory explorer
+│   │   ├── dashboard/validation/             # validation queue page
+│   │   └── page.tsx                          # landing (legal vertical)
+│   └── components/
+│       ├── memory/      # MemoryExplorer, MemoryGraph, ValidationQueue
+│       └── ...
+├── seed/                # demo data (legal contract review)
+├── ROADMAP.md           # what's shipped / blocked-on-validation / next
+└── COST.md              # Firebase bill model + tuning guide
 ```
 
-## Sample Agents
+## Tests
 
-The seed data includes four pre-configured agents:
-
-| Agent | Type | Description |
-|-------|------|-------------|
-| **Atlas** | General | Broad knowledge assistant |
-| **Forge** | Code | Software development specialist |
-| **Sage** | Research | Deep analysis and synthesis |
-| **Muse** | Creative | Writing and brainstorming partner |
-
-## Testing
+Audit log integrity is unit-tested. Other surfaces are validated manually until
+we have paying customers.
 
 ```bash
-# Run Cloud Functions tests
 cd functions && npm test
-
-# Run with coverage
-cd functions && npx jest --coverage
 ```
-
-## Environment Variables
-
-### Web App (.env)
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_FIREBASE_*` | Firebase web config (from Firebase Console) |
-| `NEXT_PUBLIC_USE_EMULATORS` | Set to 'true' for local development |
-
-### Cloud Functions (functions/.env or Firebase Secrets)
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Claude API key |
-| `VERTEX_AI_PROJECT_ID` | GCP project for embeddings |
-| `MCP_SERVER_SECRET` | Secret for MCP server auth |
-| `SERPER_API_KEY` | Web search API key |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `DISCORD_BOT_TOKEN` | Discord bot token |
-| `SLACK_BOT_TOKEN` | Slack bot token |
 
 ## License
 
-Proprietary - All Rights Reserved
+Proprietary. All rights reserved.

@@ -128,6 +128,8 @@ export const telegramWebhook = onRequest(
     secrets: [telegramBotToken, telegramWebhookSecret],
     maxInstances: 20,
     region: 'us-central1',
+    timeoutSeconds: 60,
+    memory: '512MiB',
   },
   async (req, res) => {
     try {

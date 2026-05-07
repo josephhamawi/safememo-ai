@@ -389,7 +389,12 @@ export const agentRouter = onRequest(
       // Translate common API errors into user-friendly messages
       let userError = 'Internal server error';
       let statusCode = 500;
-      if (message.includes('overloaded_error') || message.includes('Overloaded')) {
+      if (err instanceof Error && err.name === 'BudgetExceededError') {
+        userError =
+          'Daily usage cap reached for this tenant. The cap resets at 00:00 UTC. ' +
+          'Contact your admin to raise the per-tenant cap.';
+        statusCode = 429;
+      } else if (message.includes('overloaded_error') || message.includes('Overloaded')) {
         userError = 'The AI model is currently overloaded. Please try again in a moment.';
         statusCode = 503;
       } else if (message.includes('rate_limit')) {

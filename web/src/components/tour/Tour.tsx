@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Bot, MessageSquare, Wrench, Brain, Terminal, Settings,
-  Sparkles, Download, X, ArrowRight, CheckCircle2,
+  Sparkles, X, ArrowRight, CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -55,30 +55,20 @@ const STEPS: TourStep[] = [
     position: 'left',
   },
   {
-    id: 'skills',
-    title: 'Skill Marketplace',
-    description:
-      'Browse and install skills to give your agent superpowers — web search, file ops, code execution, Apple Mail, Notes, Calendar, and much more. You can also add your own custom MCP servers.',
-    icon: Wrench,
-    position: 'center',
-    cta: { label: 'Browse Skills', href: '/dashboard/skills' },
-  },
-  {
     id: 'memory',
-    title: 'Sovereign Memory',
+    title: 'Auditable memory',
     description:
-      'Your agent learns facts about you from every conversation. They live in your account — not the model provider\'s training set. Manage them in the Memory tab anytime.',
+      'Every fact your agent learns is staged for human review before it becomes long-term knowledge. The validation gate flags duplicates and contradictions automatically.',
     icon: Brain,
     position: 'center',
   },
   {
-    id: 'desktop',
-    title: 'Get the Desktop App 🖥️',
+    id: 'audit',
+    title: 'Tamper-evident audit trail',
     description:
-      'Want your agent to read your emails, check your calendar, or write notes in Apple Notes? Download the Noomachy desktop app to unlock local Mac integrations.',
-    icon: Download,
+      'Every approval, rejection, and tool call is hash-chained with SHA-256. Open any memory and click "View Audit Trail" to see the full lineage — or share a signed link with auditors.',
+    icon: Wrench,
     position: 'center',
-    cta: { label: 'Download Desktop App', href: '/download' },
   },
   {
     id: 'done',

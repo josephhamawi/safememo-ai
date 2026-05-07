@@ -93,7 +93,7 @@ export interface EpisodicMemory {
   createdAt: Timestamp;
 }
 
-export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'whatsapp' | 'web';
+export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'web';
 export type AgentType = 'general' | 'code' | 'research' | 'creative' | 'planning';
 
 export interface Agent {
@@ -121,7 +121,6 @@ export interface Agent {
     telegram?: { chatId: string; enabled: boolean };
     discord?: { channelId: string; enabled: boolean };
     slack?: { channelId: string; enabled: boolean };
-    whatsapp?: { phoneNumber: string; enabled: boolean };
     web: { enabled: boolean };
   };
   status: 'active' | 'paused' | 'archived';

@@ -154,6 +154,8 @@ export const slackWebhook = onRequest(
     secrets: [slackSigningSecret, slackBotToken],
     maxInstances: 20,
     region: 'us-central1',
+    timeoutSeconds: 60,
+    memory: '512MiB',
   },
   async (req, res) => {
     try {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import Link from 'next/link';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { SemanticMemory } from '@/types';
 import {
   X,
@@ -11,9 +11,9 @@ import {
   Tag,
   Eye,
   EyeOff,
-  Users,
   Hash,
   Shield,
+  ShieldCheck,
   Clock,
   BarChart3,
   AlertCircle,
@@ -42,34 +42,27 @@ export default function MemoryDetail({ memory, onClose, onDeleted }: MemoryDetai
     JSON.stringify(editedTags) !== JSON.stringify(memory.metadata.tags);
 
   const handleSave = async () => {
-    if (!hasChanges) return;
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const memoryRef = doc(
-        db,
-        `agents/${memory.agentId}/semanticMemory`,
-        memory.id
-      );
-      await updateDoc(memoryRef, {
-        content: editedContent,
-        'metadata.tags': editedTags,
-      });
-      setIsEditing(false);
-    } catch (err) {
-      console.error('Failed to save memory:', err);
-      setSaveError('Failed to save changes');
-    } finally {
-      setIsSaving(false);
-    }
+    // In-place edit of approved memories breaks the audit chain (the original
+    // hash no longer matches new content). Editing is disabled until we ship
+    // a "supersede" flow that preserves the lineage.
+    setSaveError(
+      'Editing approved memories is disabled to preserve the audit chain. Purge and re-add instead.',
+    );
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteDoc(
-        doc(db, `agents/${memory.agentId}/semanticMemory`, memory.id)
-      );
+      const functions = getFunctions(undefined, 'us-central1');
+      const purgeFn = httpsCallable<
+        { agentId: string; memoryId: string; reason?: string },
+        { ok: boolean }
+      >(functions, 'purgeMemory');
+      await purgeFn({
+        agentId: memory.agentId,
+        memoryId: memory.id,
+        reason: 'Purged from memory detail panel',
+      });
       onDeleted?.();
       onClose?.();
     } catch (err) {
@@ -110,7 +103,8 @@ export default function MemoryDetail({ memory, onClose, onDeleted }: MemoryDetai
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="rounded-md px-2.5 py-1 text-xs text-blue-400 transition-colors hover:bg-blue-400/10"
+                title="Editing approved memories breaks the audit chain. Purge and re-add instead."
+                className="rounded-md px-2.5 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
               >
                 Edit
               </button>
@@ -255,29 +249,14 @@ export default function MemoryDetail({ memory, onClose, onDeleted }: MemoryDetai
             </div>
           </div>
 
-          {/* Access Control */}
+          {/* Access Control — strict tenant isolation by design */}
           <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
             <div className="flex items-center gap-1.5 text-xs text-zinc-400">
               <Shield className="h-3.5 w-3.5" />
               Access Control
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              {memory.accessControl.visibility === 'private' && (
-                <span className="flex items-center gap-1 text-sm text-zinc-300">
-                  <EyeOff className="h-3.5 w-3.5" /> Private
-                </span>
-              )}
-              {memory.accessControl.visibility === 'shared' && (
-                <span className="flex items-center gap-1 text-sm text-zinc-300">
-                  <Users className="h-3.5 w-3.5" /> Shared with{' '}
-                  {memory.accessControl.allowedUsers.length} users
-                </span>
-              )}
-              {memory.accessControl.visibility === 'public' && (
-                <span className="flex items-center gap-1 text-sm text-zinc-300">
-                  <Eye className="h-3.5 w-3.5" /> Public
-                </span>
-              )}
+            <div className="mt-2 flex items-center gap-1 text-sm text-zinc-300">
+              <EyeOff className="h-3.5 w-3.5" /> Tenant-private
             </div>
           </div>
 
@@ -360,6 +339,13 @@ export default function MemoryDetail({ memory, onClose, onDeleted }: MemoryDetai
             </div>
           ) : (
             <>
+              <Link
+                href={`/audit/${memory.agentId}/${memory.id}`}
+                className="flex items-center gap-1.5 text-sm text-zinc-300 transition-colors hover:text-zinc-100"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                View audit trail
+              </Link>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="flex items-center gap-1.5 text-sm text-red-400 transition-colors hover:text-red-300"
@@ -367,7 +353,6 @@ export default function MemoryDetail({ memory, onClose, onDeleted }: MemoryDetai
                 <Trash2 className="h-4 w-4" />
                 Delete
               </button>
-              <div />
             </>
           )}
         </div>

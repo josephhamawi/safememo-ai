@@ -185,6 +185,8 @@ export const discordWebhook = onRequest(
     secrets: [discordPublicKey, discordBotToken, discordApplicationId],
     maxInstances: 20,
     region: 'us-central1',
+    timeoutSeconds: 60,
+    memory: '512MiB',
   },
   async (req, res) => {
     try {

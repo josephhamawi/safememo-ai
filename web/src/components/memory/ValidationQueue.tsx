@@ -1,17 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  doc,
-  setDoc,
-  deleteDoc,
-  updateDoc,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
-import type { StagingMemory, SemanticMemory } from '@/types';
+import type { StagingMemory } from '@/types';
 import {
   Check,
   X,
@@ -46,24 +38,20 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
     [stagingMemories]
   );
 
+  const decide = httpsCallable<
+    {
+      agentId: string;
+      stagingId: string;
+      decision: 'approve' | 'reject';
+      reason?: string;
+    },
+    { ok: boolean; decision: string }
+  >(getFunctions(undefined, 'us-central1'), 'decideMemory');
+
   const handleApprove = async (memory: StagingMemory & { id: string }) => {
     setProcessingId(memory.id);
     try {
-      // Write to semantic collection
-      const semanticData: Omit<SemanticMemory, 'id'> = {
-        agentId: memory.agentId,
-        content: memory.content,
-        embedding: memory.embedding,
-        metadata: {
-          ...memory.metadata,
-          validationStatus: 'approved',
-          lastAccessed: Timestamp.now(),
-        },
-        accessControl: memory.accessControl,
-      };
-      await setDoc(doc(db, `agents/${agentId}/semanticMemory`, memory.id), semanticData);
-      // Remove from staging
-      await deleteDoc(doc(db, `agents/${agentId}/stagingMemory`, memory.id));
+      await decide({ agentId, stagingId: memory.id, decision: 'approve' });
     } catch (err) {
       console.error('Failed to approve memory:', err);
     } finally {
@@ -72,12 +60,15 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
   };
 
   const handleReject = async (memoryId: string) => {
-    if (!rejectReason.trim()) return;
+    const reason = rejectReason.trim().slice(0, 600);
+    if (!reason) return;
     setProcessingId(memoryId);
     try {
-      await updateDoc(doc(db, `agents/${agentId}/stagingMemory`, memoryId), {
-        'metadata.validationStatus': 'rejected',
-        rejectionReason: rejectReason.trim(),
+      await decide({
+        agentId,
+        stagingId: memoryId,
+        decision: 'reject',
+        reason,
       });
       setRejectingId(null);
       setRejectReason('');
@@ -258,42 +249,59 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
                 {/* Actions */}
                 <div className="flex items-center border-t border-zinc-800">
                   {rejectingId === memory.id ? (
-                    <div className="flex w-full items-center gap-2 p-3">
-                      <input
-                        type="text"
-                        placeholder="Rejection reason..."
+                    <div className="flex w-full flex-col gap-2 p-3">
+                      <label className="text-[10px] uppercase tracking-wider text-zinc-500">
+                        Rejection reason
+                        <span className="ml-1 text-zinc-600">
+                          (sealed into the audit chain — be specific)
+                        </span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. Conflicts with Acme MSA §14.2 (notice period). Confirmed with partner; original 30-day term stands."
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
-                        className="flex-1 rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 outline-none focus:border-zinc-500"
+                        className="w-full resize-y rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-xs leading-relaxed text-zinc-300 placeholder-zinc-600 outline-none focus:border-zinc-500"
                         autoFocus
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleReject(memory.id);
+                          // Cmd/Ctrl+Enter submits; Escape cancels.
+                          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            handleReject(memory.id);
+                          }
                           if (e.key === 'Escape') {
                             setRejectingId(null);
                             setRejectReason('');
                           }
                         }}
                       />
-                      <button
-                        onClick={() => handleReject(memory.id)}
-                        disabled={!rejectReason.trim() || processingId === memory.id}
-                        className="rounded-md bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/30 disabled:opacity-50"
-                      >
-                        {processingId === memory.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          'Confirm'
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRejectingId(null);
-                          setRejectReason('');
-                        }}
-                        className="text-xs text-zinc-500 hover:text-zinc-300"
-                      >
-                        Cancel
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="mr-auto text-[10px] text-zinc-600">
+                          {rejectReason.trim().length}/600 chars · ⌘↵ to submit
+                        </span>
+                        <button
+                          onClick={() => {
+                            setRejectingId(null);
+                            setRejectReason('');
+                          }}
+                          className="rounded px-2.5 py-1 text-xs text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleReject(memory.id)}
+                          disabled={
+                            !rejectReason.trim() || processingId === memory.id
+                          }
+                          className="rounded-md bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/30 disabled:opacity-50"
+                        >
+                          {processingId === memory.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            'Confirm rejection'
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <>

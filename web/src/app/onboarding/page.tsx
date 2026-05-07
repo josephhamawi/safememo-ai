@@ -106,7 +106,6 @@ const CHANNEL_OPTIONS: { value: ChannelSource; label: string }[] = [
   { value: 'telegram', label: 'Telegram' },
   { value: 'discord', label: 'Discord' },
   { value: 'slack', label: 'Slack' },
-  { value: 'whatsapp', label: 'WhatsApp' },
 ];
 
 const REFERRAL_OPTIONS: { value: ReferralSource; label: string }[] = [

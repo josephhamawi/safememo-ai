@@ -4,6 +4,7 @@ import { PredictionServiceClient } from '@google-cloud/aiplatform';
 import type { SemanticMemory } from '../types';
 import { cosineSimilarity } from './validationGate';
 import { paths, touchSemanticMemory } from './memoryManager';
+import { MAX_EMBEDDING_INPUT_CHARS, recordUsage } from '../cost/budgetGuard';
 
 const db = () => getFirestore();
 
@@ -60,7 +61,16 @@ function getPredictionClient(): PredictionServiceClient {
  * Falls back to a zero vector (with a warning) if Vertex AI is unreachable
  * so the caller can degrade gracefully.
  */
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(
+  text: string,
+  options: { tenantId?: string } = {},
+): Promise<number[]> {
+  // Hard input cap: bound the per-call cost regardless of caller bug.
+  const safeText =
+    text.length > MAX_EMBEDDING_INPUT_CHARS
+      ? text.slice(0, MAX_EMBEDDING_INPUT_CHARS)
+      : text;
+
   try {
     const { project, location } = getProjectConfig();
     const client = getPredictionClient();
@@ -70,7 +80,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     const instance = {
       structValue: {
         fields: {
-          content: { stringValue: text },
+          content: { stringValue: safeText },
         },
       },
     };
@@ -112,6 +122,15 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       logger.warn('Embedding dimension mismatch', {
         expected: EMBEDDING_DIMENSIONS,
         received: embedding.length,
+      });
+    }
+
+    if (options.tenantId) {
+      // Best-effort metering; failures inside recordUsage are swallowed.
+      void recordUsage({
+        tenantId: options.tenantId,
+        kind: 'embedding',
+        inputChars: safeText.length,
       });
     }
 
@@ -315,10 +334,11 @@ export async function semanticSearch(
   agentId: string,
   query: string,
   topK = 10,
+  tenantId?: string,
 ): Promise<ScoredMemory[]> {
   logger.debug('Running semantic search', { agentId, topK });
 
-  const queryEmbedding = await generateEmbedding(query);
+  const queryEmbedding = await generateEmbedding(query, { tenantId });
 
   // Zero-vector check (embedding generation failed)
   const isZero = queryEmbedding.every((v) => v === 0);
@@ -361,10 +381,11 @@ export async function hybridSearch(
   query: string,
   filters: MetadataFilters,
   topK = 10,
+  tenantId?: string,
 ): Promise<ScoredMemory[]> {
   logger.debug('Running hybrid search', { agentId, filters, topK });
 
-  const queryEmbedding = await generateEmbedding(query);
+  const queryEmbedding = await generateEmbedding(query, { tenantId });
 
   const isZero = queryEmbedding.every((v) => v === 0);
   if (isZero) {

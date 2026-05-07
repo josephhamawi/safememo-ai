@@ -5,21 +5,16 @@ import { useCustomCommands } from '@/hooks/useCustomCommands';
 import { BUILTIN_COMMANDS, type SlashCommand } from '@/lib/slashCommands';
 import { useAppStore } from '@/store';
 import {
-  Terminal, Cpu, Mail, Calendar, CheckSquare, FileText,
-  Clipboard, Coffee, Target, Trash2, Sparkles, Copy, Check,
+  Terminal, FileText, Flag, Search, Inbox, ShieldCheck,
+  Trash2, Sparkles, Copy, Check,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  'mac-info': Cpu,
-  'clipboard': Clipboard,
-  'emails': Mail,
-  'unread': Mail,
-  'today': Calendar,
-  'week': Calendar,
-  'reminders': CheckSquare,
-  'notes': FileText,
-  'morning': Coffee,
-  'focus': Target,
+  'summarize': FileText,
+  'flags': Flag,
+  'precedent': Search,
+  'pending': Inbox,
+  'audit': ShieldCheck,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { where, orderBy, deleteDoc, doc, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { where, orderBy } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
 import { useAppStore } from '@/store';
 import type { SemanticMemory, EpisodicMemory, WorkingMemory } from '@/types';
@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Inbox,
   Shield,
+  ShieldCheck,
+  Share2,
   Eye,
   Hash,
 } from 'lucide-react';
@@ -46,6 +48,8 @@ export default function MemoryExplorer() {
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<{ id: string; url: string } | null>(null);
 
   // Data fetching
   const {
@@ -138,26 +142,44 @@ export default function MemoryExplorer() {
     });
   };
 
+  const handleShare = async (memoryId: string) => {
+    if (!selectedAgentId) return;
+    setSharingId(memoryId);
+    try {
+      const functions = getFunctions(undefined, 'us-central1');
+      const mintFn = httpsCallable<
+        { agentId: string; memoryId: string; ttlDays?: number },
+        { token: string; expiresAt: number }
+      >(functions, 'mintAuditShareToken');
+      const res = await mintFn({ agentId: selectedAgentId, memoryId, ttlDays: 7 });
+      const url = `${window.location.origin}/audit/share?token=${encodeURIComponent(res.data.token)}`;
+      setShareLink({ id: memoryId, url });
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // clipboard may not be available; user can still copy from the input
+      }
+    } catch (err) {
+      console.error('Failed to mint share token', err);
+    } finally {
+      setSharingId(null);
+    }
+  };
+
   const handleDelete = async (memoryId: string) => {
     if (!selectedAgentId) return;
     setDeletingId(memoryId);
     try {
-      const memory = semanticMemories.find((m) => m.id === memoryId);
-      if (memory) {
-        // Move to staging with rejected status
-        await setDoc(doc(db, `agents/${selectedAgentId}/stagingMemory`, memoryId), {
-          ...memory,
-          metadata: {
-            ...memory.metadata,
-            validationStatus: 'rejected',
-          },
-          proposedBy: 'user',
-          explanation: 'Manually rejected from memory explorer',
-          autoApprovalEligible: false,
-        });
-        // Delete from semantic
-        await deleteDoc(doc(db, `agents/${selectedAgentId}/semanticMemory`, memoryId));
-      }
+      const functions = getFunctions(undefined, 'us-central1');
+      const purgeFn = httpsCallable<
+        { agentId: string; memoryId: string; reason?: string },
+        { ok: boolean }
+      >(functions, 'purgeMemory');
+      await purgeFn({
+        agentId: selectedAgentId,
+        memoryId,
+        reason: 'Purged from memory explorer',
+      });
     } catch (err) {
       console.error('Failed to delete memory:', err);
     } finally {
@@ -349,7 +371,44 @@ export default function MemoryExplorer() {
                             </span>
                           </div>
 
-                          <div className="flex justify-end">
+                          {shareLink?.id === memory.id && (
+                            <div className="mb-3 rounded-md border border-orange-500/20 bg-orange-500/5 px-3 py-2">
+                              <p className="mb-1 text-[10px] uppercase tracking-wider text-orange-300">
+                                Share link (7-day expiry, copied to clipboard)
+                              </p>
+                              <input
+                                readOnly
+                                value={shareLink.url}
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[10px] text-zinc-300 outline-none"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <a
+                              href={`/audit/${selectedAgentId}/${memory.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                            >
+                              <ShieldCheck className="h-3 w-3" />
+                              View Audit Trail
+                            </a>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShare(memory.id);
+                              }}
+                              disabled={sharingId === memory.id}
+                              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-50"
+                            >
+                              {sharingId === memory.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Share2 className="h-3 w-3" />
+                              )}
+                              Share
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

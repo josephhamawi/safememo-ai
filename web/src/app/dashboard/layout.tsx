@@ -22,7 +22,7 @@ import {
   Plus,
   Menu,
   Home,
-  Zap,
+  ShieldCheck,
   PanelLeftClose,
   PanelRightClose,
   ChevronDown,
@@ -30,12 +30,12 @@ import {
   Trash2,
   RefreshCw,
   Terminal,
-  Download,
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
 import CreateAgentDialog from '@/components/chat/CreateAgentDialog';
 import RightPanelContent from '@/components/dashboard/RightPanelContent';
 import CommandsPanel from '@/components/dashboard/CommandsPanel';
+import DailyUsageBadge from '@/components/dashboard/DailyUsageBadge';
 import Tour from '@/components/tour/Tour';
 import { updateDoc as fsUpdateDoc } from 'firebase/firestore';
 
@@ -370,12 +370,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Navigation links */}
         <nav className="border-t border-zinc-800 px-2 py-2">
           <NavLink icon={Home} label="Home" href="/dashboard" active={pathname === '/dashboard'} />
-          <NavLink icon={Zap} label="Auto-pilot" href="/dashboard/goals" active={pathname === '/dashboard/goals'} />
           <NavLink icon={Brain} label="Memory Explorer" href="/dashboard/memory" active={pathname === '/dashboard/memory'} />
-          <NavLink icon={Wrench} label="Skill Marketplace" href="/dashboard/skills" active={pathname === '/dashboard/skills'} />
+          <NavLink icon={ShieldCheck} label="Pending Validation" href="/dashboard/validation" active={pathname === '/dashboard/validation'} />
           <NavLink icon={Settings} label="Settings" href="/dashboard/settings" active={pathname === '/dashboard/settings'} />
-          <NavLink icon={Download} label="Get Desktop App" href="/download" active={false} highlight />
         </nav>
+
+        {/* Daily cost cap */}
+        <div className="border-t border-zinc-800 pt-2">
+          <DailyUsageBadge />
+        </div>
 
         {/* Sign out */}
         <div className="border-t border-zinc-800 px-2 py-2">

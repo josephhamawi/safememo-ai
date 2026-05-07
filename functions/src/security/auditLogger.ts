@@ -17,12 +17,40 @@ const MAX_PAGE_SIZE = 200;
 // ============================================================
 
 /**
- * Compute a SHA-256 hex digest of the given data for tamper-detection.
- * Deterministic: keys are sorted before hashing.
+ * Recursively serialize a value with object keys sorted at every depth so
+ * `{a: {b: 1}}` and `{a: {b: 1}}` always produce the same string regardless
+ * of insertion order. Critical for hash determinism: a previous version used
+ * `JSON.stringify(data, Object.keys(data).sort())` which silently filtered
+ * out nested keys (the replacer-array argument is a whitelist, not a sort).
  */
-function computeHash(data: Record<string, unknown>): string {
-  const canonical = JSON.stringify(data, Object.keys(data).sort());
-  return crypto.createHash('sha256').update(canonical).digest('hex');
+function canonicalize(value: unknown): string {
+  if (value === null) return 'null';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return '[' + value.map(canonicalize).join(',') + ']';
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
+    return (
+      '{' +
+      keys
+        .map((k) => JSON.stringify(k) + ':' + canonicalize(obj[k]))
+        .join(',') +
+      '}'
+    );
+  }
+  // undefined / function / symbol — collapse to null so they don't poison the hash
+  return 'null';
+}
+
+/**
+ * Compute a SHA-256 hex digest of the given data for tamper-detection.
+ * Deterministic: every key is sorted at every depth before hashing.
+ */
+export function computeHash(data: Record<string, unknown>): string {
+  return crypto.createHash('sha256').update(canonicalize(data)).digest('hex');
 }
 
 /**
@@ -39,6 +67,34 @@ function buildResultHash(
   return computeHash(payload);
 }
 
+/**
+ * Look up the previous chain head for a given memoryId (or null if first entry).
+ * The chain is per-memory: each memory has its own append-only audit lineage.
+ */
+async function getPreviousChainHash(memoryId: string): Promise<string | null> {
+  const snap = await db()
+    .collection(AUDIT_COLLECTION)
+    .where('memoryId', '==', memoryId)
+    .orderBy('timestamp', 'desc')
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const prev = snap.docs[0].data();
+  return (prev.chainHash as string) ?? null;
+}
+
+/**
+ * Build the linked chain hash for an audit entry.
+ * chainHash = SHA256(previousChainHash || resultHash). This binds each entry
+ * to its predecessor — modifying an old entry invalidates every later hash.
+ */
+function buildChainHash(previousHash: string | null, resultHash: string): string {
+  return crypto
+    .createHash('sha256')
+    .update((previousHash ?? '') + ':' + resultHash)
+    .digest('hex');
+}
+
 // ============================================================
 // Core write
 // ============================================================
@@ -53,19 +109,27 @@ const db = () => getFirestore();
  * @returns The generated document ID.
  */
 export async function logAction(
-  entry: Partial<AuditLog> & { userId: string; action: string },
+  entry: Partial<AuditLog> & { userId: string; action: string; memoryId?: string },
 ): Promise<string> {
   try {
     const id = entry.id ?? uuidv4();
 
-    // Build integrity hash from params + any result-like data
-    const resultHash =
-      entry.resultHash ?? buildResultHash(entry.params);
+    // Per-entry tamper-evidence
+    const resultHash = entry.resultHash ?? buildResultHash(entry.params);
+
+    // Hash chain: every memory has its own chronological chain. Entries
+    // without a memoryId still get a chainHash but stand alone (no previous).
+    const previousChainHash = entry.memoryId
+      ? await getPreviousChainHash(entry.memoryId)
+      : null;
+    const chainHash = buildChainHash(previousChainHash, resultHash);
 
     const doc: Record<string, unknown> = {
       ...entry,
       id,
       resultHash,
+      previousChainHash,
+      chainHash,
       status: entry.status ?? 'success',
       duration: entry.duration ?? 0,
       timestamp: FieldValue.serverTimestamp(),
@@ -118,12 +182,14 @@ export async function logMemoryAction(
   agentId: string,
   action: string,
   memoryId: string,
+  extra: Record<string, unknown> = {},
 ): Promise<string> {
   return logAction({
     userId,
     agentId,
     action: `memory_${action}`,
-    params: { memoryId },
+    memoryId,
+    params: { memoryId, ...extra },
     status: 'success',
     duration: 0,
   });

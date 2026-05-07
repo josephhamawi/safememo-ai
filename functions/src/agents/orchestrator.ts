@@ -19,6 +19,12 @@ import {
   Message,
 } from '../types';
 import { executeTool, formatToolResult } from './mcpExecutor';
+import {
+  assertWithinBudget,
+  recordUsage,
+  BudgetExceededError,
+  MAX_LLM_OUTPUT_TOKENS,
+} from '../cost/budgetGuard';
 
 // ---------------------------------------------------------------------------
 // Secrets
@@ -35,12 +41,6 @@ const MAX_TOOL_ITERATIONS = 10;
 const INTENT_MODEL = 'claude-sonnet-4-6';
 const AGENT_MODEL = 'claude-sonnet-4-6';
 const GEMINI_MODEL = 'gemini-2.5-flash';
-
-// Budget: $5 limit. Gemini 2.0 Flash pricing (approx):
-// Input: $0.10/1M tokens, Output: $0.40/1M tokens
-const GEMINI_BUDGET_LIMIT_USD = 5.0;
-const GEMINI_INPUT_COST_PER_TOKEN = 0.10 / 1_000_000;
-const GEMINI_OUTPUT_COST_PER_TOKEN = 0.40 / 1_000_000;
 
 const db = admin.firestore();
 
@@ -111,9 +111,15 @@ export async function processRequest(
   const client = new Anthropic({ apiKey: anthropicApiKey.value().trim() });
 
   // ------------------------------------------------------------------
+  // 0. Budget guard — fail fast before any LLM call
+  // ------------------------------------------------------------------
+  await assertWithinBudget(message.userId);
+
+  // ------------------------------------------------------------------
   // 1. Build system prompt & initial messages
   // ------------------------------------------------------------------
   const systemPrompt = buildSystemPrompt(agent, memories, tools);
+  const cappedMaxTokens = Math.min(agent.modelConfig.maxTokens, MAX_LLM_OUTPUT_TOKENS);
 
   const claudeTools: ClaudeTool[] = tools.map((t) => ({
     name: t.name,
@@ -143,7 +149,7 @@ export async function processRequest(
 
     const response = await withRetry(() => client.messages.create({
       model: AGENT_MODEL,
-      max_tokens: agent.modelConfig.maxTokens,
+      max_tokens: cappedMaxTokens,
       temperature: agent.modelConfig.temperature,
       ...(agent.modelConfig.topP != null ? { top_p: agent.modelConfig.topP } : {}),
       system: systemPrompt,
@@ -205,7 +211,7 @@ export async function processRequest(
     // For correctness, we issue a parallel non-stream call.
     const fullResponse = await withRetry(() => client.messages.create({
       model: AGENT_MODEL,
-      max_tokens: agent.modelConfig.maxTokens,
+      max_tokens: cappedMaxTokens,
       temperature: agent.modelConfig.temperature,
       ...(agent.modelConfig.topP != null ? { top_p: agent.modelConfig.topP } : {}),
       system: systemPrompt,
@@ -371,6 +377,14 @@ export async function processRequest(
     logger.error('Failed to update working memory', err);
   }
 
+  // Record Claude usage against the per-tenant daily cap
+  await recordUsage({
+    tenantId: message.userId,
+    kind: 'claude',
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
+  });
+
   // ------------------------------------------------------------------
   // 5. Return response
   // ------------------------------------------------------------------
@@ -410,20 +424,12 @@ export async function processRequestGemini(
   let totalOutputTokens = 0;
   const startTime = Date.now();
 
-  // Budget check
-  const budgetOk = await checkGeminiBudget(message.userId);
-  if (!budgetOk) {
-    return {
-      messageId,
-      content: 'You have reached the $5 Gemini API budget limit. Please switch to Claude or contact support to increase your limit.',
-      toolCalls: [],
-      memoryUpdates: { workingMemoryUpdated: false, episodicLogged: false, semanticStaged: [] },
-      tokenUsage: { input: 0, output: 0 },
-    };
-  }
+  // Budget check (per-tenant daily cap, fails closed)
+  await assertWithinBudget(message.userId);
 
   const genAI = new GoogleGenerativeAI(geminiApiKey.value().trim());
   const systemPrompt = buildSystemPrompt(agent, memories, tools);
+  const cappedMaxTokens = Math.min(agent.modelConfig.maxTokens, MAX_LLM_OUTPUT_TOKENS);
 
   // Build Gemini tool declarations
   const geminiTools: FunctionDeclaration[] = tools.map((t) => ({
@@ -443,7 +449,7 @@ export async function processRequestGemini(
     systemInstruction: systemPrompt,
     generationConfig: {
       temperature: agent.modelConfig.temperature,
-      maxOutputTokens: agent.modelConfig.maxTokens,
+      maxOutputTokens: cappedMaxTokens,
     },
     ...(geminiTools.length > 0 ? { tools: [{ functionDeclarations: geminiTools }] } : {}),
   });
@@ -556,8 +562,13 @@ export async function processRequestGemini(
     consolidationScore: 0, promotedToSemantic: false, createdAt: Timestamp.now(),
   });
 
-  // Track Gemini usage for budget
-  await trackGeminiUsage(message.userId, totalInputTokens, totalOutputTokens);
+  // Record Gemini usage against the per-tenant daily cap
+  await recordUsage({
+    tenantId: message.userId,
+    kind: 'gemini',
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
+  });
 
   // Update working memory
   try {
@@ -571,44 +582,6 @@ export async function processRequestGemini(
     memoryUpdates: { workingMemoryUpdated: true, episodicLogged: true, semanticStaged: [] },
     tokenUsage: { input: totalInputTokens, output: totalOutputTokens },
   };
-}
-
-/**
- * Check if user has remaining Gemini budget.
- */
-async function checkGeminiBudget(userId: string): Promise<boolean> {
-  const usageRef = db.collection('users').doc(userId).collection('usage').doc('gemini');
-  const snap = await usageRef.get();
-  if (!snap.exists) return true;
-  const data = snap.data();
-  const totalCost = (data?.totalCostUsd ?? 0) as number;
-  return totalCost < GEMINI_BUDGET_LIMIT_USD;
-}
-
-/**
- * Track Gemini token usage and cost for budget enforcement.
- */
-async function trackGeminiUsage(
-  userId: string,
-  inputTokens: number,
-  outputTokens: number,
-): Promise<void> {
-  const cost =
-    inputTokens * GEMINI_INPUT_COST_PER_TOKEN +
-    outputTokens * GEMINI_OUTPUT_COST_PER_TOKEN;
-
-  const usageRef = db.collection('users').doc(userId).collection('usage').doc('gemini');
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(usageRef);
-    const existing = snap.data() ?? { totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0, requestCount: 0 };
-    tx.set(usageRef, {
-      totalInputTokens: (existing.totalInputTokens ?? 0) + inputTokens,
-      totalOutputTokens: (existing.totalOutputTokens ?? 0) + outputTokens,
-      totalCostUsd: (existing.totalCostUsd ?? 0) + cost,
-      requestCount: (existing.requestCount ?? 0) + 1,
-      lastUsedAt: Timestamp.now(),
-    });
-  });
 }
 
 // ---------------------------------------------------------------------------
