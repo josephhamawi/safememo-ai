@@ -93,7 +93,8 @@ export interface EpisodicMemory {
   createdAt: Timestamp;
 }
 
-export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'web';
+// Other channels (telegram/discord/slack) are deferred per ROADMAP.
+export type ChannelSource = 'web';
 export type AgentType = 'general' | 'code' | 'research' | 'creative' | 'planning';
 
 export interface Agent {
@@ -118,9 +119,6 @@ export interface Agent {
     autoApprovalThreshold: number;
   };
   channels: {
-    telegram?: { chatId: string; enabled: boolean };
-    discord?: { channelId: string; enabled: boolean };
-    slack?: { channelId: string; enabled: boolean };
     web: { enabled: boolean };
   };
   status: 'active' | 'paused' | 'archived';

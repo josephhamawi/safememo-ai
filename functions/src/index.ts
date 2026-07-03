@@ -12,11 +12,6 @@ import './init';
 export { agentRouter } from './agents/router';
 export { deleteAgent } from './agents/deleteAgent';
 
-// Channel Webhooks
-export { telegramWebhook } from './channels/telegram';
-export { discordWebhook } from './channels/discord';
-export { slackWebhook } from './channels/slack';
-
 // MCP Server
 export { mcpServer } from './mcp/server';
 

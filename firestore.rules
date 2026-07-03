@@ -131,6 +131,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Audit chain-head pointers. Internal integrity state written only by the
+    // server (admin) inside the append transaction. No client should ever read
+    // or write these — the chain is verified via auditLogs, not this pointer.
+    match /auditChainHeads/{memoryId} {
+      allow read, write: if false;
+    }
+
     // Notifications
     match /notifications/{userId}/{notificationId} {
       allow read: if isOwner(userId);

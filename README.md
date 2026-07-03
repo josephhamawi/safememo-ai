@@ -136,7 +136,6 @@ noomachy/
 ├── functions/src/
 │   ├── agents/          # router, orchestrator, mcpExecutor
 │   ├── audit/           # share endpoint, mintToken (signed links)
-│   ├── channels/        # telegram, discord, slack adapters
 │   ├── cost/            # budgetGuard.ts (per-tenant daily cap)
 │   ├── mcp/             # MCP server + built-in tools
 │   ├── memory/          # memoryManager, validationGate, vectorSearch

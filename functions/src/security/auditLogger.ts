@@ -9,6 +9,11 @@ import { AuditLog } from '../types';
 // ============================================================
 
 const AUDIT_COLLECTION = 'auditLogs';
+// Per-memory chain head pointers. One doc per memoryId holds the current
+// chainHash so appends can serialize on it inside a transaction instead of
+// racing on a `orderBy(timestamp)` query (which allows two concurrent writes
+// to read the same predecessor and fork the chain).
+const CHAIN_HEAD_COLLECTION = 'auditChainHeads';
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 
@@ -117,14 +122,10 @@ export async function logAction(
     // Per-entry tamper-evidence
     const resultHash = entry.resultHash ?? buildResultHash(entry.params);
 
-    // Hash chain: every memory has its own chronological chain. Entries
-    // without a memoryId still get a chainHash but stand alone (no previous).
-    const previousChainHash = entry.memoryId
-      ? await getPreviousChainHash(entry.memoryId)
-      : null;
-    const chainHash = buildChainHash(previousChainHash, resultHash);
-
-    const doc: Record<string, unknown> = {
+    const buildDoc = (
+      previousChainHash: string | null,
+      chainHash: string,
+    ): Record<string, unknown> => ({
       ...entry,
       id,
       resultHash,
@@ -133,9 +134,46 @@ export async function logAction(
       status: entry.status ?? 'success',
       duration: entry.duration ?? 0,
       timestamp: FieldValue.serverTimestamp(),
-    };
+    });
 
-    await db().collection(AUDIT_COLLECTION).doc(id).set(doc);
+    // Entries without a memoryId stand alone (no predecessor, no chain to
+    // fork), so a plain write is safe and cheaper than a transaction.
+    if (!entry.memoryId) {
+      const chainHash = buildChainHash(null, resultHash);
+      await db().collection(AUDIT_COLLECTION).doc(id).set(buildDoc(null, chainHash));
+      logger.info('Audit log written', { id, action: entry.action, userId: entry.userId });
+      return id;
+    }
+
+    // Chained entries: serialize per-memory through the chain-head pointer.
+    // Both concurrent appends read `headRef` in their transaction, so Firestore
+    // forces one to retry against the other's committed head instead of letting
+    // them share a predecessor and fork the chain.
+    const memoryId = entry.memoryId;
+    const headRef = db().collection(CHAIN_HEAD_COLLECTION).doc(memoryId);
+    const entryRef = db().collection(AUDIT_COLLECTION).doc(id);
+
+    await db().runTransaction(async (tx) => {
+      const headSnap = await tx.get(headRef);
+      // Back-compat: chains written before head pointers existed have no head
+      // doc. Seed the predecessor from the legacy timestamp query the first
+      // time; every subsequent append reads the head doc directly. The
+      // transaction's conflict domain is still `headRef`, so a truly
+      // simultaneous first write on the same memory retries and reads the head
+      // the winner just wrote — no fork.
+      const previousChainHash = headSnap.exists
+        ? ((headSnap.data()?.chainHash as string) ?? null)
+        : await getPreviousChainHash(memoryId);
+      const chainHash = buildChainHash(previousChainHash, resultHash);
+
+      tx.set(entryRef, buildDoc(previousChainHash, chainHash));
+      tx.set(headRef, {
+        memoryId,
+        chainHash,
+        entryId: id,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
 
     logger.info('Audit log written', { id, action: entry.action, userId: entry.userId });
     return id;

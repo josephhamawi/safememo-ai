@@ -48,11 +48,11 @@ export default function BlogIndex() {
             <span className="text-lg font-bold">Noomachy</span>
           </Link>
           <div className="hidden items-center gap-8 md:flex">
-            <Link href="/#features" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">
-              Features
+            <Link href="/#how" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">
+              How it works
             </Link>
-            <Link href="/#pricing" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">
-              Pricing
+            <Link href="/#trust" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">
+              Trust
             </Link>
             <Link href="/blog" className="text-sm text-orange-400">
               Blog
@@ -63,10 +63,10 @@ export default function BlogIndex() {
               Sign In
             </Link>
             <Link
-              href="/auth/login?tab=signup"
+              href="/#early-access"
               className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-medium text-white"
             >
-              Get Started
+              Get a demo
             </Link>
           </div>
         </div>
@@ -131,15 +131,15 @@ export default function BlogIndex() {
       {/* Footer CTA */}
       <section className="border-t border-zinc-800/50 px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-4 text-2xl font-bold">Ready to build with sovereign AI?</h2>
+          <h2 className="mb-4 text-2xl font-bold">Memory your AI can defend in a deposition</h2>
           <p className="mb-6 text-zinc-400">
-            Create your first AI agent in under a minute. Free tier, no credit card.
+            Tamper-evident, human-validated agent memory for legal and compliance teams.
           </p>
           <Link
-            href="/auth/login?tab=signup"
+            href="/#early-access"
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all hover:shadow-orange-500/30"
           >
-            Get Started Free
+            Request early access
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

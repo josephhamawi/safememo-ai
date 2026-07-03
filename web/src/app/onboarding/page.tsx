@@ -31,7 +31,6 @@ import type {
   PrimaryUse,
   AiExperience,
   ReferralSource,
-  ChannelSource,
   WorkContext,
   CommunicationStyle,
 } from '@/types';
@@ -42,7 +41,7 @@ const STEPS = [
   'Primary Use',
   'Your Goals',
   'AI Experience',
-  'Style & Channels',
+  'Style',
   'How You Found Us',
 ];
 
@@ -54,7 +53,6 @@ interface OnboardingData {
   goals: string[];
   aiExperience: AiExperience | null;
   communicationStyle: CommunicationStyle | null;
-  preferredIntegrations: ChannelSource[];
   timezone: string;
   referralSource: ReferralSource | null;
 }
@@ -99,13 +97,6 @@ const STYLE_OPTIONS: { value: CommunicationStyle; label: string; description: st
   { value: 'detailed', label: 'Detailed', description: 'In-depth, with context' },
   { value: 'casual', label: 'Casual', description: 'Friendly and conversational' },
   { value: 'formal', label: 'Formal', description: 'Professional tone' },
-];
-
-const CHANNEL_OPTIONS: { value: ChannelSource; label: string }[] = [
-  { value: 'web', label: 'Web' },
-  { value: 'telegram', label: 'Telegram' },
-  { value: 'discord', label: 'Discord' },
-  { value: 'slack', label: 'Slack' },
 ];
 
 const REFERRAL_OPTIONS: { value: ReferralSource; label: string }[] = [
@@ -171,7 +162,6 @@ export default function OnboardingPage() {
     goals: [],
     aiExperience: null,
     communicationStyle: null,
-    preferredIntegrations: ['web'],
     timezone: detectedTimezone,
     referralSource: null,
   });
@@ -183,7 +173,7 @@ export default function OnboardingPage() {
       case 2: return data.primaryUse !== null;
       case 3: return data.goals.length > 0;
       case 4: return data.aiExperience !== null;
-      case 5: return data.communicationStyle !== null && data.preferredIntegrations.length > 0;
+      case 5: return data.communicationStyle !== null;
       case 6: return data.referralSource !== null;
       default: return false;
     }
@@ -216,7 +206,6 @@ export default function OnboardingPage() {
           goals: data.goals,
           aiExperience: data.aiExperience,
           communicationStyle: data.communicationStyle,
-          preferredIntegrations: data.preferredIntegrations,
           timezone: data.timezone,
           referralSource: data.referralSource,
           completedAt: serverTimestamp(),
@@ -227,10 +216,7 @@ export default function OnboardingPage() {
       // Create first agent personalized to user's answers
       const agentConfig = USE_TO_AGENT_TYPE[data.primaryUse];
       const agentId = crypto.randomUUID();
-      const channels: Record<string, { enabled: boolean }> = { web: { enabled: true } };
-      for (const ch of data.preferredIntegrations) {
-        channels[ch] = { enabled: true };
-      }
+      const channels = { web: { enabled: true } };
 
       // Personalize the system prompt with onboarding data
       const personalizedPrompt = `${agentConfig.prompt}
@@ -474,7 +460,7 @@ Respond in a ${data.communicationStyle} style. Adapt to these preferences natura
         </div>
       )}
 
-      {/* Step 5: Style + Channels */}
+      {/* Step 5: Style */}
       {step === 5 && (
         <div className="space-y-6">
           <div className="text-center">
@@ -482,7 +468,7 @@ Respond in a ${data.communicationStyle} style. Adapt to these preferences natura
               <MessageSquare className="h-7 w-7 text-orange-400" />
             </div>
             <h2 className="text-2xl font-bold text-zinc-100">Communication preferences</h2>
-            <p className="mt-2 text-sm text-zinc-500">How should your agent talk to you, and where?</p>
+            <p className="mt-2 text-sm text-zinc-500">How should your agent talk to you?</p>
           </div>
 
           <div>
@@ -504,35 +490,6 @@ Respond in a ${data.communicationStyle} style. Adapt to these preferences natura
                   <span className="mt-0.5 text-xs text-zinc-500">{opt.description}</span>
                 </button>
               ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Channels you want to use
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {CHANNEL_OPTIONS.map((opt) => {
-                const selected = data.preferredIntegrations.includes(opt.value);
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      const integrations = selected
-                        ? data.preferredIntegrations.filter((c) => c !== opt.value)
-                        : [...data.preferredIntegrations, opt.value];
-                      setData({ ...data, preferredIntegrations: integrations });
-                    }}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-                      selected
-                        ? 'border-orange-600 bg-orange-500/10 text-orange-400'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
             </div>
           </div>
 

@@ -96,8 +96,8 @@ export default async function BlogPostPage({ params }: PageProps) {
             <span className="text-lg font-bold">Noomachy</span>
           </Link>
           <div className="hidden items-center gap-8 md:flex">
-            <Link href="/#features" className="text-sm text-zinc-400 hover:text-zinc-200">Features</Link>
-            <Link href="/#pricing" className="text-sm text-zinc-400 hover:text-zinc-200">Pricing</Link>
+            <Link href="/#how" className="text-sm text-zinc-400 hover:text-zinc-200">How it works</Link>
+            <Link href="/#trust" className="text-sm text-zinc-400 hover:text-zinc-200">Trust</Link>
             <Link href="/blog" className="text-sm text-orange-400">Blog</Link>
           </div>
           <div className="flex items-center gap-3">
@@ -105,10 +105,10 @@ export default async function BlogPostPage({ params }: PageProps) {
               Sign In
             </Link>
             <Link
-              href="/auth/login?tab=signup"
+              href="/#early-access"
               className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-medium text-white"
             >
-              Get Started
+              Get a demo
             </Link>
           </div>
         </div>
@@ -168,13 +168,13 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="mt-12 rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-8 text-center">
           <h3 className="mb-2 text-xl font-bold">Ready to try Noomachy?</h3>
           <p className="mb-6 text-zinc-400">
-            Build AI agents with sovereign memory in minutes. Free tier, no credit card.
+            Tamper-evident, human-validated agent memory for legal and compliance teams.
           </p>
           <Link
-            href="/auth/login?tab=signup"
+            href="/#early-access"
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
           >
-            Get Started Free
+            Request early access
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

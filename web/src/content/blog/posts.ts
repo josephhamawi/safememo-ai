@@ -64,7 +64,7 @@ Read more: [Sovereign Memory: Why AI Agents Need Their Own Brain](/blog/sovereig
 
 The fastest way to experience a real AI agent is to try one. Noomachy lets you create personal agents with sovereign memory in under a minute. You can connect them to your email, calendar, notes, files, and more — and they remember everything between sessions.
 
-[Try Noomachy free →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 
 ## Further Reading
 
@@ -144,9 +144,9 @@ This is the difference between an agent that learns and an agent that hallucinat
 
 ## Try It
 
-[Noomachy](/) is built on sovereign memory from day one. Sign up free and watch your agent get smarter with every conversation.
+[Noomachy](/) is built on sovereign memory from day one. Request early access and watch your agent's memory get sharper with every validated fact.
 
-[Get started →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -240,7 +240,7 @@ This is what a sovereign agent looks like in motion. No model retraining, no man
 
 Noomachy ships with all three layers active by default. Start chatting and watch your Memory tab fill up with facts the agent has learned.
 
-[Create your first agent →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -329,7 +329,7 @@ If you're building an AI app today and not using MCP, you're locking yourself in
 
 Noomachy lets you use built-in MCP tools immediately and add your own with one click.
 
-[Sign up free →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -417,7 +417,7 @@ We track Gemini token usage per user with a $5 default budget cap, so users can 
 - Building a **content tool** with high volume? Use Gemini Flash.
 - Want both? Use [Noomachy](/) — switch per agent with a dropdown.
 
-[Try both free →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -507,7 +507,7 @@ The skill is knowing which is which.
 
 ## Try It
 
-[Try Noomachy free →](/auth/login?tab=signup) and see how an agent handles tasks your current automation can't.
+[Request early access →](/#early-access) and see how an agent handles tasks your current automation can't.
 `,
   },
 
@@ -585,7 +585,7 @@ Agents are more privacy-sensitive than chatbots because they accumulate state. A
 
 [Noomachy](/) was designed with privacy-first as a core principle: sovereign memory, local-first integrations via MCP, multi-tenant isolation enforced by Firestore security rules, audit logs for every action.
 
-[Sign up free →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -679,7 +679,7 @@ In production, the embedding step is the bottleneck. Caching embeddings aggressi
 
 You don't need to think about any of this. As a user, you just chat. Your agent quietly embeds, validates, stores, and retrieves — and the result is that it remembers things in a way that *feels* intelligent because it actually understands meaning, not just keywords.
 
-[Try it →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -786,13 +786,13 @@ This is why most AI assistant products either:
 - Limit usage with hard caps and tiers
 - Run as loss leaders to gather data for training
 
-[Noomachy's free tier](/) uses Gemini Flash by default with a $5 monthly token cap. Pro tier ($29/month) unlocks Claude and removes caps. The economics work because most users are well below the heavy-user threshold.
+[Noomachy](/) bounds this with a per-tenant daily USD cap (default $5/day) that fails closed before a runaway bill, and routes to Claude for validation-critical work with Gemini as the cost-tier fallback. The economics work because the cap is the ceiling, not the expectation — most tenants stay well under it.
 
 ## Bottom Line
 
 Running an AI agent is **cheaper than people think** (if you're frugal) and **more expensive than people expect** (if you're sloppy). The lever is what model you use and how much context you pass. Get those right and the rest doesn't matter.
 
-[Try Noomachy free →](/auth/login?tab=signup)
+[Request early access →](/#early-access)
 `,
   },
 
@@ -875,7 +875,7 @@ Use the time you save to do the thinking the agent can't do.
 
 ## Try It
 
-[Sign up free →](/auth/login?tab=signup) and install the **Code Execution**, **File Operations**, **Web Search**, and **Database Query** skills on a fresh agent. Then ask it to help you with real work.
+[Request early access →](/#early-access) and install the **Code Execution**, **File Operations**, **Web Search**, and **Database Query** skills on a fresh agent. Then ask it to help you with real work.
 `,
   },
 
@@ -970,7 +970,7 @@ A memory store with good validation **gets better over time**. The longer you us
 
 ## Try It
 
-[Sign up free →](/auth/login?tab=signup) and watch your agent's Memory tab fill up with auto-validated facts. Anything that needs review will show up in the validation queue.
+[Request early access →](/#early-access) and watch your agent's Memory tab fill up with auto-validated facts. Anything that needs review will show up in the validation queue.
 `,
   },
 
@@ -1015,13 +1015,12 @@ The downside: you're trusting a vendor with your data and your continuity. If th
 
 ## Cost Comparison
 
-For a single user or small team:
-- **Hosted (Noomachy free tier):** $0/month
-- **Hosted (Noomachy Pro):** $29/month
+For a single team:
+- **Hosted (Noomachy):** design-partner pricing during early access; a per-tenant daily USD cap bounds spend
 - **Self-hosted (1 server + LLM API):** ~$20–40/month server + your token costs
 
 For 1000+ users:
-- **Hosted (Noomachy Enterprise):** custom pricing, scales with usage
+- **Hosted (Noomachy):** custom pricing, scales with usage
 - **Self-hosted:** ~$200–500/month infrastructure + your token costs + DevOps time
 
 The break-even is around 50–100 active users, depending on usage patterns.
@@ -1070,7 +1069,7 @@ A hosted platform: sign up, create agent, done. The 8 components above already e
 
 There's a third path: use a hosted platform for the dashboard / orchestration / memory, but plug in your own MCP servers for custom tools. This is what most Noomachy power users do — they get the platform benefits plus custom integrations.
 
-[Sign up for Noomachy free →](/auth/login?tab=signup) and see how far the hosted version gets you before you'd ever need to self-host.
+[Request early access →](/#early-access) and see how far the hosted version gets you before you'd ever need to self-host.
 `,
   },
 
@@ -1162,7 +1161,7 @@ That summary is injected into every system prompt. The model adapts naturally �
 
 ## Try It
 
-[Sign up free →](/auth/login?tab=signup) and chat with Noomachy for a week. You'll watch the Memory tab fill up with facts and the behavior profile sharpen. The agent will actually feel different than it did on day one — not because the model changed, but because its context did.
+[Request early access →](/#early-access) and chat with Noomachy for a week. You'll watch the Memory tab fill up with facts and the behavior profile sharpen. The agent will actually feel different than it did on day one — not because the model changed, but because its context did.
 `,
   },
 
@@ -1266,12 +1265,12 @@ Here's how [Noomachy](/) answers each question:
 | Channels? | Web, Telegram, Discord, Slack |
 | Local access? | Desktop app with local MCP server |
 | Privacy? | Multi-tenant Firestore, no training, audit logs |
-| Cost? | Free tier with $5 Gemini cap, $29 Pro tier |
+| Cost? | Per-tenant daily USD cap (default $5/day), fails closed; design-partner pricing in early access |
 | Customizable? | System prompts, memory config, skill picker, model picker |
 | Open standards? | MCP throughout |
-| Free trial? | Yes, full features |
+| Access? | Early access for legal & compliance design partners |
 
-[Sign up free →](/auth/login?tab=signup) and try it before you commit to any platform.
+[Request early access →](/#early-access) and see the validation gate and audit trail on your own contracts.
 
 ## The Bottom Line
 

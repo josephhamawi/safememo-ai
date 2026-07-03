@@ -30,6 +30,12 @@ The following were removed from code and copy because they were either
 incomplete or off-strategy for the new positioning:
 
 - WhatsApp adapter (no implementation, removed from types/UI/copy).
+- Telegram / Discord / Slack webhooks (`functions/src/channels/`) — verified
+  signatures but never invoked the agent (returned a placeholder). Deleted
+  from code, exports, types, settings/onboarding UI, and env examples. The
+  dashboard is the only surface until a customer's workflow needs a channel.
+- Self-serve email sign-up on the login page — the front door is now
+  demo/early-access only; existing users still sign in.
 - Skill marketplace UI (`web/src/components/dashboard/SkillMarketplace.tsx`,
   `web/src/app/dashboard/skills/page.tsx`) — UI was scaffolding only.
 - Auto-pilot scheduler (`functions/src/goals/`,

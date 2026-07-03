@@ -8,16 +8,15 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAppStore } from '@/store';
 import {
   Settings, Bot, Save, Loader2, User, Shield, Bell, Link2, Brain,
-  Cpu, MessageSquare, Globe, Mail, Hash, Key, Eye, EyeOff, Check,
+  Cpu, MessageSquare, Mail, Hash, Key, Check,
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
 
-type SettingsTab = 'profile' | 'agent' | 'channels' | 'notifications' | 'security';
+type SettingsTab = 'profile' | 'agent' | 'notifications' | 'security';
 
 const TABS: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
   { key: 'profile', label: 'Profile', icon: User },
   { key: 'agent', label: 'Agent', icon: Bot },
-  { key: 'channels', label: 'Channels', icon: Globe },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'security', label: 'Security', icon: Shield },
 ];
@@ -42,14 +41,6 @@ export default function SettingsPage() {
   const [model, setModel] = useState<'claude' | 'gemini'>('claude');
   const [autoApproval, setAutoApproval] = useState(true);
   const [autoApprovalThreshold, setAutoApprovalThreshold] = useState(0.9);
-
-  // Channel state
-  const [telegramToken, setTelegramToken] = useState('');
-  const [telegramChatId, setTelegramChatId] = useState('');
-  const [discordToken, setDiscordToken] = useState('');
-  const [discordChannelId, setDiscordChannelId] = useState('');
-  const [slackToken, setSlackToken] = useState('');
-  const [slackChannelId, setSlackChannelId] = useState('');
 
   // Notification state
   const [emailNotifs, setEmailNotifs] = useState(true);
@@ -93,13 +84,6 @@ export default function SettingsPage() {
           'modelConfig.maxTokens': maxTokens,
           'memoryConfig.autoApprovalEnabled': autoApproval,
           'memoryConfig.autoApprovalThreshold': autoApprovalThreshold,
-          updatedAt: serverTimestamp(),
-        });
-      } else if (activeTab === 'channels' && selectedAgentId) {
-        await updateDoc(doc(db, 'agents', selectedAgentId), {
-          'channels.telegram': { enabled: !!telegramChatId, chatId: telegramChatId, token: telegramToken },
-          'channels.discord': { enabled: !!discordChannelId, channelId: discordChannelId, token: discordToken },
-          'channels.slack': { enabled: !!slackChannelId, channelId: slackChannelId, token: slackToken },
           updatedAt: serverTimestamp(),
         });
       } else if (activeTab === 'profile' && user) {
@@ -271,54 +255,6 @@ export default function SettingsPage() {
             </>
           )}
 
-          {/* ---- CHANNELS TAB ---- */}
-          {activeTab === 'channels' && (
-            <>
-              <h2 className="text-lg font-semibold text-zinc-100">Channel Connections</h2>
-              {!selectedAgent ? (
-                <div className="flex flex-col items-center gap-3 py-12 text-zinc-500">
-                  <Globe className="h-10 w-10" />
-                  <p className="text-sm">Select an agent to configure channels</p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-sm text-zinc-500">Connect your agent to messaging platforms. Messages sent to these channels will be routed to your agent.</p>
-                  <Section title="Telegram">
-                    <Field label="Bot Token" help="Get this from @BotFather on Telegram">
-                      <PasswordInput value={telegramToken} onChange={setTelegramToken} placeholder="123456:ABC-DEF..." />
-                    </Field>
-                    <Field label="Chat ID">
-                      <input type="text" value={telegramChatId} onChange={(e) => setTelegramChatId(e.target.value)}
-                        placeholder="-1001234567890"
-                        className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-600 focus:outline-none" />
-                    </Field>
-                  </Section>
-                  <Section title="Discord">
-                    <Field label="Bot Token" help="From Discord Developer Portal > Bot > Token">
-                      <PasswordInput value={discordToken} onChange={setDiscordToken} placeholder="MTEyMzQ1..." />
-                    </Field>
-                    <Field label="Channel ID">
-                      <input type="text" value={discordChannelId} onChange={(e) => setDiscordChannelId(e.target.value)}
-                        placeholder="1234567890123456789"
-                        className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-600 focus:outline-none" />
-                    </Field>
-                  </Section>
-                  <Section title="Slack">
-                    <Field label="Bot Token" help="From Slack App > OAuth & Permissions > Bot User OAuth Token">
-                      <PasswordInput value={slackToken} onChange={setSlackToken} placeholder="xoxb-..." />
-                    </Field>
-                    <Field label="Channel ID">
-                      <input type="text" value={slackChannelId} onChange={(e) => setSlackChannelId(e.target.value)}
-                        placeholder="C01ABCDEF"
-                        className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-600 focus:outline-none" />
-                    </Field>
-                  </Section>
-                  <SaveButton saving={saving} saved={saved} onClick={handleSave} />
-                </>
-              )}
-            </>
-          )}
-
           {/* ---- NOTIFICATIONS TAB ---- */}
           {activeTab === 'notifications' && (
             <>
@@ -438,28 +374,6 @@ function Toggle({ label, description, value, onChange }: { label: string; descri
         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${value ? 'bg-orange-600' : 'bg-zinc-700'}`}
       >
         <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${value ? 'translate-x-5' : ''}`} />
-      </button>
-    </div>
-  );
-}
-
-function PasswordInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <input
-        type={show ? 'text' : 'password'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 pr-10 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-600 focus:outline-none"
-      />
-      <button
-        type="button"
-        onClick={() => setShow(!show)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-      >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>
     </div>
   );

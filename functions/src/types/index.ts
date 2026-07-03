@@ -107,7 +107,9 @@ export interface EpisodicMemory {
 // Normalized Message (Channel Adapter)
 // ============================================================
 
-export type ChannelSource = 'telegram' | 'discord' | 'slack' | 'web';
+// Channels beyond the web dashboard (telegram/discord/slack) are deferred
+// until customer validation — see ROADMAP. The dashboard is the only surface.
+export type ChannelSource = 'web';
 
 export interface Attachment {
   id: string;
@@ -158,9 +160,6 @@ export interface Agent {
     autoApprovalThreshold: number;
   };
   channels: {
-    telegram?: { chatId: string; enabled: boolean };
-    discord?: { channelId: string; enabled: boolean };
-    slack?: { channelId: string; enabled: boolean };
     web: { enabled: boolean };
   };
   status: 'active' | 'paused' | 'archived';

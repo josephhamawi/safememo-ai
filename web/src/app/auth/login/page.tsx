@@ -4,19 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { Github, Mail, Lock, Loader2, User, Bot } from 'lucide-react';
+import { Github, Mail, Lock, Loader2, Bot } from 'lucide-react';
 import { toast } from '@/components/ui/Toast';
 
-type AuthTab = 'signin' | 'signup';
-
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithGithub, signInWithEmail, signUpWithEmail, loading: authLoading } = useAuth();
+  const { signInWithGoogle, signInWithGithub, signInWithEmail, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [tab, setTab] = useState<AuthTab>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,7 +21,7 @@ export default function LoginPage() {
   const handleSuccess = (provider?: string) => {
     toast({
       type: 'success',
-      title: tab === 'signup' ? 'Welcome to Noomachy!' : 'Welcome back!',
+      title: 'Welcome back!',
       message: provider ? `Signed in with ${provider}.` : 'You are signed in.',
     });
     router.push('/dashboard');
@@ -57,25 +53,12 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      if (tab === 'signin') {
-        await signInWithEmail(email, password);
-      } else {
-        if (!displayName.trim()) {
-          setError('Display name is required');
-          setSubmitting(false);
-          return;
-        }
-        await signUpWithEmail(email, password, displayName);
-      }
+      await signInWithEmail(email, password);
       handleSuccess();
     } catch (err: any) {
       const code = err?.code || '';
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setError('Invalid email or password');
-      } else if (code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists');
-      } else if (code === 'auth/weak-password') {
-        setError('Password must be at least 6 characters');
       } else if (code === 'auth/invalid-email') {
         setError('Invalid email address');
       } else {
@@ -108,7 +91,7 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-sm text-zinc-500">
-            AI Agent Platform with Sovereign Memory
+            Sign in to your workspace
           </p>
         </div>
 
@@ -164,51 +147,8 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-zinc-800" />
           </div>
 
-          {/* Tabs */}
-          <div className="mb-4 flex rounded-lg border border-zinc-800 bg-zinc-900 p-1">
-            <button
-              onClick={() => { setTab('signin'); clearError(); }}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === 'signin'
-                  ? 'bg-zinc-800 text-zinc-100'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => { setTab('signup'); clearError(); }}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === 'signup'
-                  ? 'bg-zinc-800 text-zinc-100'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
           {/* Email form */}
           <form onSubmit={handleEmailSubmit} className="space-y-4">
-            {tab === 'signup' && (
-              <div>
-                <label htmlFor="displayName" className="mb-1.5 block text-xs font-medium text-zinc-400">
-                  Display Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
-                  <input
-                    id="displayName"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition-colors focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
-                  />
-                </div>
-              </div>
-            )}
-
             <div>
               <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-zinc-400">
                 Email
@@ -238,9 +178,8 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={tab === 'signup' ? 'At least 6 characters' : 'Your password'}
+                  placeholder="Your password"
                   required
-                  minLength={tab === 'signup' ? 6 : undefined}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition-colors focus:border-orange-600 focus:ring-1 focus:ring-orange-600"
                 />
               </div>
@@ -254,7 +193,7 @@ export default function LoginPage() {
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              {tab === 'signin' ? 'Sign In' : 'Create Account'}
+              Sign In
             </button>
           </form>
         </div>
