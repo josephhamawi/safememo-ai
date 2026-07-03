@@ -35,7 +35,15 @@ incomplete or off-strategy for the new positioning:
   from code, exports, types, settings/onboarding UI, and env examples. The
   dashboard is the only surface until a customer's workflow needs a channel.
 - Self-serve email sign-up on the login page — the front door is now
-  demo/early-access only; existing users still sign in.
+  demo/early-access only; existing users still sign in. Enforced at the
+  Identity Platform layer by a `beforeUserCreated` blocking function
+  (`functions/src/auth/signupGate.ts`): an account is created only if its
+  email is on the `SIGNUP_ALLOWLIST_BOOTSTRAP` list, an `allowlist/{email}`
+  doc, or an `allowlistDomains/{domain}` doc — fail-closed otherwise. This
+  covers OAuth too, so hiding the sign-up UI alone would not have been
+  enough. REQUIRES Identity Platform (GCIP) enabled and the function
+  registered under Authentication → Settings → Blocking functions; set
+  `SIGNUP_ALLOWLIST_BOOTSTRAP` to the founder email BEFORE enabling it.
 - Skill marketplace UI (`web/src/components/dashboard/SkillMarketplace.tsx`,
   `web/src/app/dashboard/skills/page.tsx`) — UI was scaffolding only.
 - Auto-pilot scheduler (`functions/src/goals/`,

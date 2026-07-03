@@ -12,6 +12,9 @@ import './init';
 export { agentRouter } from './agents/router';
 export { deleteAgent } from './agents/deleteAgent';
 
+// Auth blocking function: invite-only sign-up allowlist gate
+export { beforeSignupGate } from './auth/signupGate';
+
 // MCP Server
 export { mcpServer } from './mcp/server';
 
