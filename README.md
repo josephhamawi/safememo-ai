@@ -212,11 +212,21 @@ TEST_DATABASE_URL=postgres://safememo:<password>@localhost:5432/safememo npm tes
 
 ## Status
 
-Early and honest about it:
+Early and honest about it.
 
-- The agent loop currently supports **Anthropic only**. Google and OpenAI keys
-  store and verify correctly, but `runAgent` will refuse them.
-- Custom MCP server registration is not yet in the self-hosted backend, so the
+Verified working against PostgreSQL 17 with pgvector 0.8.6: migrations, signup
+and login, session issue and teardown, live provider-key verification,
+credential storage, the agent/profile/usage/notification/command endpoints,
+tenant scoping, and the cross-origin write guard. 31 tests pass, 9 of them
+against a real database.
+
+Not yet done:
+
+- The agent loop supports **Anthropic only**. Google and OpenAI keys store and
+  verify correctly, but `runAgent` will refuse them.
+- A full chat turn has not been run end to end — that needs a real provider key
+  and therefore real spend.
+- Custom MCP server registration is not in the self-hosted backend, so the
   desktop app's auto-registration is a documented no-op.
 - Conversation deletion has no endpoint yet.
 

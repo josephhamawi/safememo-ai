@@ -94,7 +94,7 @@ agentsRouter.post('/', requireUser, async (req, res, next) => {
 
     if (!hasKey?.exists) {
       res.status(409).json({
-        error: `Add a ${PROVIDERS[provider].label} API key before creating an agent that uses it.`,
+        error: `Add ${/^[AEIOU]/i.test(PROVIDERS[provider].label) ? 'an' : 'a'} ${PROVIDERS[provider].label} API key before creating an agent that uses it.`,
         reason: 'missing_credential',
         provider,
       });

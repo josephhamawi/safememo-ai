@@ -24,6 +24,11 @@ import {
 } from '../crypto/envelope';
 import { PROVIDERS, type ProviderId, verifyKey } from './registry';
 
+/** "an Anthropic key", "a Google key" — provider labels vary. */
+function article(label: string): string {
+  return /^[AEIOU]/i.test(label) ? 'an' : 'a';
+}
+
 /** Everything the UI is allowed to know about a stored credential. */
 export interface CredentialSummary {
   id: string;
@@ -199,7 +204,7 @@ export async function saveCredential(params: {
     return {
       ok: false,
       reason: 'malformed',
-      message: `That does not look like a ${definition.label} key. ${definition.formatHint}.`,
+      message: `That does not look like ${article(definition.label)} ${definition.label} key. ${definition.formatHint}.`,
     };
   }
 

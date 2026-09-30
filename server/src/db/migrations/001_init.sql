@@ -278,12 +278,3 @@ CREATE TABLE usage_daily (
   requests       bigint NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, day)
 );
-
--- ---------------------------------------------------------------------------
--- Schema bookkeeping
--- ---------------------------------------------------------------------------
-
-CREATE TABLE schema_migrations (
-  version     text PRIMARY KEY,
-  applied_at  timestamptz NOT NULL DEFAULT now()
-);
