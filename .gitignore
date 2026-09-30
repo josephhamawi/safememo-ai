@@ -7,18 +7,11 @@ node_modules/
 .next/
 out/
 dist/
-functions/lib/
+server/dist/
 build/
 
-# Firebase
-.firebase/
-firebase-debug.log
-firebase-debug.*.log
-ui-debug.log
-firestore-debug.log
-pubsub-debug.log
-storage-debug.log
-database-debug.log
+# Local model weights for the embedding backend
+.cache/
 
 # Environment
 .env
@@ -26,8 +19,8 @@ database-debug.log
 .env.development.local
 .env.test.local
 .env.production.local
-functions/.env
-functions/.env.local
+server/.env
+server/.env.local
 
 # IDE
 .vscode/

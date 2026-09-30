@@ -4,21 +4,21 @@ import { POSTS } from '@/content/blog/posts';
 import { Bot, Calendar, Clock, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Blog — Noomachy AI Agent Platform',
+  title: 'Blog — SafeMemo AI AI Agent Platform',
   description:
     'Learn about AI agents, sovereign memory, the Model Context Protocol, and how to build personal AI assistants that actually remember you.',
   openGraph: {
-    title: 'Noomachy Blog — AI Agents, Memory, and the Future of Personal AI',
+    title: 'SafeMemo AI Blog — AI Agents, Memory, and the Future of Personal AI',
     description:
       'In-depth guides on AI agents, sovereign memory, MCP tooling, and building personal AI assistants.',
     url: 'https://noomachy.com/blog',
-    siteName: 'Noomachy',
+    siteName: 'SafeMemo AI',
     images: [{ url: '/og-image.png', width: 659, height: 659 }],
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Noomachy Blog',
+    title: 'SafeMemo AI Blog',
     description: 'AI agents, sovereign memory, and the Model Context Protocol.',
     images: ['/og-image.png'],
   },
@@ -45,7 +45,7 @@ export default function BlogIndex() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">Noomachy</span>
+            <span className="text-lg font-bold">SafeMemo AI</span>
           </Link>
           <div className="hidden items-center gap-8 md:flex">
             <Link href="/#how" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">
@@ -66,7 +66,7 @@ export default function BlogIndex() {
               href="/#early-access"
               className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-medium text-white"
             >
-              Get a demo
+              Request early access
             </Link>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function BlogIndex() {
         <h1 className="mb-4 text-4xl font-bold md:text-5xl">
           The{' '}
           <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-            Noomachy
+            SafeMemo AI
           </span>{' '}
           Blog
         </h1>
@@ -150,10 +150,10 @@ export default function BlogIndex() {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-zinc-500">
             <Bot className="h-4 w-4" />
-            Noomachy
+            SafeMemo AI
           </div>
           <p className="text-xs text-zinc-600">
-            &copy; {new Date().getFullYear()} Noomachy. All rights reserved.
+            &copy; {new Date().getFullYear()} SafeMemo AI. All rights reserved.
           </p>
         </div>
       </footer>

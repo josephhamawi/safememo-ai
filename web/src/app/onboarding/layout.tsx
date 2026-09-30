@@ -31,7 +31,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
           <Bot className="h-4 w-4 text-white" />
         </div>
-        <span className="text-lg font-bold text-zinc-100">Noomachy</span>
+        <span className="text-lg font-bold text-zinc-100">SafeMemo AI</span>
       </div>
       <main className="flex flex-1 items-center justify-center p-6">
         {children}

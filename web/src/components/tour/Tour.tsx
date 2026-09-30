@@ -21,7 +21,7 @@ interface TourStep {
 const STEPS: TourStep[] = [
   {
     id: 'welcome',
-    title: 'Welcome to Noomachy 👋',
+    title: 'Welcome to SafeMemo AI 👋',
     description:
       "Let's take a quick 60-second tour. You'll learn how to chat with your agent, install skills, and unlock the full power of your personal AI.",
     icon: Sparkles,

@@ -1,6 +1,6 @@
 # Cost model
 
-Noomachy runs entirely on Firebase + Vertex AI + Anthropic/Gemini. This doc is
+SafeMemo AI runs entirely on Firebase + Vertex AI + Anthropic/Gemini. This doc is
 a back-of-envelope projection of what the bill looks like at 10 / 100 / 1000
 active tenants, plus a guide to tuning the per-tenant cap.
 

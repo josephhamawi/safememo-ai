@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
-import type { StagingMemory } from '@/types';
+import { validation as validationApi, type PendingMemory } from '@/lib/api';
+import { useResource } from '@/hooks/useResource';
 import {
   Check,
   X,
@@ -26,32 +25,33 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const { data: stagingMemories, loading, error } = useFirestoreCollection<StagingMemory>(
-    agentId ? `agents/${agentId}/stagingMemory` : '',
-    {
-      enabled: !!agentId,
-    }
+  const {
+    data: queue,
+    loading,
+    error,
+    refresh,
+  } = useResource(() => validationApi.pending(), [agentId], { enabled: !!agentId });
+
+  // The endpoint already returns only pending items, scoped to the caller.
+  const stagingMemories: PendingMemory[] = (queue ?? []).filter(
+    (m) => !agentId || m.agentId === agentId,
   );
 
-  const pendingCount = useMemo(
-    () => stagingMemories.filter((m) => m.metadata.validationStatus === 'staging').length,
-    [stagingMemories]
-  );
+  const pendingCount = useMemo(() => stagingMemories.length, [stagingMemories]);
 
-  const decide = httpsCallable<
-    {
-      agentId: string;
-      stagingId: string;
-      decision: 'approve' | 'reject';
-      reason?: string;
-    },
-    { ok: boolean; decision: string }
-  >(getFunctions(undefined, 'us-central1'), 'decideMemory');
+  const decide = async (input: {
+    stagingId: string;
+    decision: 'approve' | 'reject';
+    reason?: string;
+  }) => {
+    await validationApi.decide(input.stagingId, input.decision, input.reason);
+    await refresh();
+  };
 
-  const handleApprove = async (memory: StagingMemory & { id: string }) => {
+  const handleApprove = async (memory: PendingMemory) => {
     setProcessingId(memory.id);
     try {
-      await decide({ agentId, stagingId: memory.id, decision: 'approve' });
+      await decide({ stagingId: memory.id, decision: 'approve' });
     } catch (err) {
       console.error('Failed to approve memory:', err);
     } finally {
@@ -65,7 +65,6 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
     setProcessingId(memoryId);
     try {
       await decide({
-        agentId,
         stagingId: memoryId,
         decision: 'reject',
         reason,
@@ -96,9 +95,7 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
     );
   }
 
-  const pendingMemories = stagingMemories.filter(
-    (m) => m.metadata.validationStatus === 'staging'
-  );
+  const pendingMemories = stagingMemories;
 
   return (
     <div className="flex h-full flex-col bg-zinc-950">
@@ -140,15 +137,15 @@ export default function ValidationQueue({ agentId }: ValidationQueueProps) {
                     <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />
                     <div>
                       <p className="text-xs font-medium text-zinc-400">
-                        Proposed by {memory.proposedBy}
+                        Proposed by {memory.source ?? 'agent'}
                       </p>
-                      <p className="text-xs text-zinc-500">{memory.explanation}</p>
+                      <p className="text-xs text-zinc-500">Awaiting your review before it enters long-term memory.</p>
                     </div>
                   </div>
 
                   {/* Tags */}
                   <div className="mb-3 flex flex-wrap gap-1.5">
-                    {memory.metadata.tags.map((tag) => (
+                    {memory.tags.map((tag: string) => (
                       <span
                         key={tag}
                         className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400"

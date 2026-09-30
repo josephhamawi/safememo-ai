@@ -1,4 +1,9 @@
-import { Timestamp } from 'firebase/firestore';
+/**
+ * Firestore's Timestamp is gone with Firebase. The API serialises times as
+ * ISO-8601 strings; this alias keeps the many `Timestamp`-typed fields below
+ * compiling while they are migrated one screen at a time.
+ */
+export type Timestamp = string;
 
 // Mirror of server types for client use
 
@@ -97,45 +102,13 @@ export interface EpisodicMemory {
 export type ChannelSource = 'web';
 export type AgentType = 'general' | 'code' | 'research' | 'creative' | 'planning';
 
-export interface Agent {
-  id: string;
-  ownerId: string;
-  name: string;
-  description: string;
-  type: AgentType;
-  systemPrompt: string;
-  model: 'claude' | 'gemini';
-  modelConfig: {
-    temperature: number;
-    maxTokens: number;
-    topP?: number;
-  };
-  enabledSkills: string[];
-  memoryConfig: {
-    maxWorkingMemoryMessages: number;
-    semanticSearchTopK: number;
-    episodicSearchTopK: number;
-    autoApprovalEnabled: boolean;
-    autoApprovalThreshold: number;
-  };
-  channels: {
-    web: { enabled: boolean };
-  };
-  status: 'active' | 'paused' | 'archived';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+/**
+ * Agent and Conversation are now defined by the API. Re-exported here so the
+ * many `import type { Agent } from '@/types'` call sites keep working against
+ * a single definition rather than a stale Firestore-shaped copy.
+ */
+export type { Agent, Conversation } from '@/lib/api';
 
-export interface Conversation {
-  id: string;
-  agentId: string;
-  userId: string;
-  title: string;
-  source: ChannelSource;
-  messageCount: number;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
 
 export interface Skill {
   id: string;
@@ -152,11 +125,12 @@ export interface Skill {
 
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'memory_validation' | 'agent_error' | 'skill_update' | 'system';
+  /** Server column is `kind`; `type` is kept as an alias for existing UI. */
+  kind: string;
+  type?: 'memory_validation' | 'agent_error' | 'skill_update' | 'system';
   title: string;
-  body: string;
-  data?: Record<string, unknown>;
+  body: string | null;
+  link?: string | null;
   read: boolean;
   createdAt: Timestamp;
 }

@@ -24,7 +24,7 @@ export class TrayManager {
     trayIcon.setTemplateImage(true);
 
     this.tray = new Tray(trayIcon);
-    this.tray.setToolTip('Noomachy');
+    this.tray.setToolTip('SafeMemo AI');
 
     this.updateMenu();
 
@@ -71,7 +71,7 @@ export class TrayManager {
 
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Noomachy',
+        label: 'SafeMemo AI',
         enabled: false,
       },
       { type: 'separator' },
@@ -112,7 +112,7 @@ export class TrayManager {
       },
       { type: 'separator' },
       {
-        label: 'Quit Noomachy',
+        label: 'Quit SafeMemo AI',
         accelerator: 'CmdOrCtrl+Q',
         click: () => {
           // Force quit - don't just hide
@@ -127,7 +127,7 @@ export class TrayManager {
     this.tray.setContextMenu(contextMenu);
 
     // Update tooltip to reflect status
-    this.tray.setToolTip(`Noomachy - ${this.getStatusLabel(status)}`);
+    this.tray.setToolTip(`SafeMemo AI - ${this.getStatusLabel(status)}`);
   }
 
   private toggleWindow(): void {

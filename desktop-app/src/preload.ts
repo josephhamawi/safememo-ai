@@ -21,7 +21,7 @@ const MCP_PORT = 3939;
 const MCP_BASE_URL = `http://localhost:${MCP_PORT}`;
 
 contextBridge.exposeInMainWorld('noomachy', {
-  /** Indicates the web app is running inside the Noomachy desktop wrapper */
+  /** Indicates the web app is running inside the SafeMemo AI desktop wrapper */
   isDesktopApp: true,
 
   /** The MCP server base URL */

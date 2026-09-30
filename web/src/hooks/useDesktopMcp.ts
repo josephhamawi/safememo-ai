@@ -1,19 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-
-interface NoomachyDesktop {
+interface SafeMemoDesktop {
   isDesktopApp: boolean;
   getTunnelUrl: () => Promise<string | null>;
   onTunnelReady: (callback: (url: string) => void) => () => void;
@@ -21,66 +8,21 @@ interface NoomachyDesktop {
 
 declare global {
   interface Window {
-    noomachy?: NoomachyDesktop;
+    // Preload bridge key, set by the Electron wrapper. Unchanged during the
+    // rename so an older desktop build still matches.
+    noomachy?: SafeMemoDesktop;
   }
 }
 
 /**
- * Auto-registers the local desktop MCP server as a Custom MCP for the user
- * when the web app is running inside the Noomachy Electron desktop wrapper.
+ * Auto-registration of the local desktop MCP server.
  *
- * This makes Mail/Notes/Calendar/etc. tools available to the cloud agent
- * via a Cloudflare Quick Tunnel without any manual setup.
+ * Intentionally a no-op right now. The Firebase version wrote a Custom MCP
+ * document to `users/{uid}/customMcps`; the self-hosted backend has no custom
+ * MCP registry yet — only the built-in memory tools were ported — so there is
+ * nothing to register against. The hook and the window bridge are kept so the
+ * desktop integration point stays visible rather than being silently dropped.
  */
-export function useDesktopMcp() {
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.noomachy?.isDesktopApp) return;
-
-    const registerMcp = async (publicUrl: string) => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      try {
-        // Check if a Desktop MCP is already registered for this user
-        const mcpsRef = collection(db, 'users', user.uid, 'customMcps');
-        const q = query(mcpsRef, where('name', '==', 'Desktop Control'));
-        const snap = await getDocs(q);
-
-        if (snap.empty) {
-          // Register new
-          await addDoc(mcpsRef, {
-            name: 'Desktop Control',
-            description: 'Local Mac apps: Mail, Notes, Calendar, Reminders, Files, System',
-            endpoint: publicUrl,
-            apiKey: null,
-            enabled: true,
-            isAutoManaged: true,
-            createdAt: serverTimestamp(),
-          });
-          console.log('[Desktop MCP] Auto-registered:', publicUrl);
-        } else {
-          // Update endpoint (URL changes each tunnel restart)
-          const existing = snap.docs[0];
-          if (existing.data().endpoint !== publicUrl) {
-            await updateDoc(
-              doc(db, 'users', user.uid, 'customMcps', existing.id),
-              { endpoint: publicUrl, updatedAt: serverTimestamp() }
-            );
-            console.log('[Desktop MCP] Updated tunnel URL:', publicUrl);
-          }
-        }
-      } catch (err) {
-        console.error('[Desktop MCP] Auto-register failed:', err);
-      }
-    };
-
-    // Try to get the URL immediately (might already be ready)
-    window.noomachy.getTunnelUrl().then((url) => {
-      if (url) registerMcp(url);
-    });
-
-    // Subscribe to ready events for late initialization
-    const unsubscribe = window.noomachy.onTunnelReady(registerMcp);
-    return unsubscribe;
-  }, []);
+export function useDesktopMcp(): void {
+  // Restore once the server exposes custom MCP endpoints.
 }

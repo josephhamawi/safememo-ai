@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { earlyAccess } from '@/lib/api';
 import {
   Loader2,
   ShieldCheck,
@@ -46,7 +45,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
               <ShieldCheck className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">Noomachy</span>
+            <span className="text-lg font-bold">SafeMemo AI</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
             <a href="#how" className="text-sm text-zinc-400 transition-colors hover:text-zinc-200">How it works</a>
@@ -74,18 +73,18 @@ export default function Home() {
         <div className="relative mx-auto max-w-4xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-1.5 text-xs text-zinc-400">
             <ShieldCheck className="h-3 w-3 text-orange-400" />
-            For compliance-bound legal, healthcare, and finance teams
+            For legal teams running AI on client matters
           </div>
           <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-            Tamper-proof memory for{' '}
+            Memory your AI can{' '}
             <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-              compliance-bound AI agents
+              defend in a deposition.
             </span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl">
-            The only agent memory layer with human-in-the-loop fact validation,
-            SHA-256 hash-chained audit trails, and tenant isolation by default.
-            Designed so every fact your agent recalls can be defended in a deposition.
+            When an auditor asks where the AI got that fact, show them. Every
+            memory is human-validated, SHA-256 hash-chained, and shareable with
+            outside counsel via a 7-day signed link.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
@@ -99,7 +98,7 @@ export default function Home() {
               href="#demo"
               className="rounded-xl border border-zinc-800 bg-zinc-950 px-8 py-3.5 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
             >
-              See the demo
+              See it in action
             </a>
           </div>
         </div>
@@ -122,7 +121,7 @@ export default function Home() {
             <TrustBadge
               icon={Lock}
               title="Tenant-isolated, encrypted at rest"
-              detail="Firestore-native multi-tenant isolation enforced in security rules. Encryption at rest is on by default for every customer."
+              detail="Tenant isolation enforced on every query, with row-level security behind it. Provider API keys are encrypted with AES-256-GCM before they touch the database."
             />
             <TrustBadge
               icon={Trash2}
@@ -131,7 +130,7 @@ export default function Home() {
             />
           </div>
           <p className="mx-auto mt-6 max-w-3xl text-center text-xs text-zinc-600">
-            Noomachy ships the technical controls compliance teams ask for.
+            SafeMemo AI ships the technical controls compliance teams ask for.
             We are not certified — certification depends on your specific
             deployment. We give you the substrate; your auditor signs off.
           </p>
@@ -222,8 +221,9 @@ export default function Home() {
               Request early access
             </h2>
             <p className="text-zinc-400">
-              We are onboarding a small cohort of design partners now. Tell us
-              what you'd use it for and we will reply within two business days.
+              We're onboarding 5 design-partner law firms through July 2026.
+              Tell us your use case — the founder will reply personally within
+              one business day.
             </p>
           </div>
           <EarlyAccessForm />
@@ -235,10 +235,10 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-zinc-500">
             <ShieldCheck className="h-4 w-4" />
-            Noomachy
+            SafeMemo AI
           </div>
           <p className="text-xs text-zinc-600">
-            &copy; {new Date().getFullYear()} Noomachy. All rights reserved.
+            &copy; {new Date().getFullYear()} SafeMemo AI. All rights reserved.
           </p>
         </div>
       </footer>
@@ -337,12 +337,11 @@ function EarlyAccessForm() {
     setSubmitting(true);
     setError(null);
     try {
-      await addDoc(collection(db, 'earlyAccessRequests'), {
-        name: name.trim(),
+      await earlyAccess.submit({
         email: email.trim().toLowerCase(),
-        organization: organization.trim(),
-        useCase: useCase.trim(),
-        createdAt: serverTimestamp(),
+        name: name.trim() || undefined,
+        organization: organization.trim() || undefined,
+        useCase: useCase.trim() || undefined,
       });
       setSubmitted(true);
     } catch (err) {
@@ -356,7 +355,7 @@ function EarlyAccessForm() {
     return (
       <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-6 text-center">
         <Check className="mx-auto mb-3 h-8 w-8 text-orange-400" />
-        <p className="font-medium text-zinc-100">Got it. We'll reply within two business days.</p>
+        <p className="font-medium text-zinc-100">Got it. The founder will reply personally within one business day.</p>
       </div>
     );
   }

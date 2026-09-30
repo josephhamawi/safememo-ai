@@ -1,9 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { orderBy, where } from 'firebase/firestore';
-import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
-import type { Message, SemanticMemory } from '@/types';
+import {
+  conversations as conversationsApi,
+  memories as memoriesApi,
+  type ChatMessage,
+  type Memory,
+} from '@/lib/api';
+import { useResource } from '@/hooks/useResource';
 import { Brain, Wrench, Clock, Hash, MessageSquare, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
 interface RightPanelContentProps {
@@ -13,23 +17,21 @@ interface RightPanelContentProps {
 }
 
 export default function RightPanelContent({ tab, agentId, conversationId }: RightPanelContentProps) {
-  // Load semantic memories for this agent
-  const { data: memories } = useFirestoreCollection<SemanticMemory>(
-    agentId ? `agents/${agentId}/semanticMemory` : '',
-    {
-      constraints: [where('metadata.validationStatus', '==', 'approved')],
-      enabled: !!agentId && tab === 'memory',
-    }
+  // Only approved memories reach semantic_memories, so no status filter is
+  // needed — the staging queue is a separate table.
+  const { data: memoriesData } = useResource(
+    () => memoriesApi.list({ agentId: agentId!, limit: 50 }),
+    [agentId, tab],
+    { enabled: !!agentId && tab === 'memory' },
   );
+  const memories: Memory[] = memoriesData ?? [];
 
-  // Load messages for the current conversation
-  const { data: messages } = useFirestoreCollection<Message>(
-    agentId && conversationId ? `agents/${agentId}/conversations/${conversationId}/messages` : '',
-    {
-      constraints: [orderBy('timestamp', 'asc')],
-      enabled: !!agentId && !!conversationId,
-    }
+  const { data: messagesData } = useResource(
+    () => conversationsApi.messages(conversationId!),
+    [conversationId],
+    { enabled: !!agentId && !!conversationId },
   );
+  const messages: ChatMessage[] = messagesData ?? [];
 
   // Extract tools used in this conversation
   const toolsUsed = useMemo(() => {
@@ -68,7 +70,7 @@ export default function RightPanelContent({ tab, agentId, conversationId }: Righ
           </h3>
           <span className="text-xs text-zinc-600">{memories.length}</span>
         </div>
-        {memories.slice(0, 20).map((memory) => (
+        {memories.slice(0, 20).map((memory: Memory) => (
           <div
             key={memory.id}
             className="rounded-lg border border-zinc-800 bg-zinc-900 p-3"
@@ -76,9 +78,9 @@ export default function RightPanelContent({ tab, agentId, conversationId }: Righ
             <p className="text-xs leading-relaxed text-zinc-300">{memory.content}</p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] text-zinc-600">
-                {(memory.metadata.confidence * 100).toFixed(0)}% confidence
+                {((memory.confidence ?? 0) * 100).toFixed(0)}% confidence
               </span>
-              {memory.metadata.tags?.slice(0, 3).map((tag) => (
+              {memory.tags?.slice(0, 3).map((tag: string) => (
                 <span
                   key={tag}
                   className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500"
@@ -143,7 +145,7 @@ export default function RightPanelContent({ tab, agentId, conversationId }: Righ
         <h3 className="pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Activity Timeline
         </h3>
-        {messages.map((msg, idx) => (
+        {messages.map((msg: ChatMessage, idx: number) => (
           <div key={msg.id || idx} className="flex gap-2">
             <div className="flex flex-col items-center">
               <div className={`h-2 w-2 rounded-full ${

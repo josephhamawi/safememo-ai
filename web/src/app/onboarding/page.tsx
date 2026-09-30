@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { agents as agentsApi, profile as profileApi } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import {
   ArrowLeft,
   ArrowRight,
@@ -154,8 +154,10 @@ export default function OnboardingPage() {
     }
   })();
 
+  const { user } = useAuth();
+
   const [data, setData] = useState<OnboardingData>({
-    name: auth.currentUser?.displayName || '',
+    name: user?.displayName || '',
     role: '',
     workContext: null,
     primaryUse: null,
@@ -189,18 +191,15 @@ export default function OnboardingPage() {
   };
 
   const handleComplete = async () => {
-    const user = auth.currentUser;
     if (!user || !data.primaryUse) return;
 
     setSaving(true);
     try {
-      // Update user profile
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        displayName: data.name.trim(),
+      await profileApi.update({
+        displayName: data.name.trim() || null,
         onboardingCompleted: true,
-        onboarding: {
-          role: data.role.trim() || undefined,
+        preferences: {
+          role: data.role.trim() || null,
           workContext: data.workContext,
           primaryUse: data.primaryUse,
           goals: data.goals,
@@ -208,17 +207,12 @@ export default function OnboardingPage() {
           communicationStyle: data.communicationStyle,
           timezone: data.timezone,
           referralSource: data.referralSource,
-          completedAt: serverTimestamp(),
+          completedAt: new Date().toISOString(),
         },
-        updatedAt: serverTimestamp(),
       });
 
-      // Create first agent personalized to user's answers
       const agentConfig = USE_TO_AGENT_TYPE[data.primaryUse];
-      const agentId = crypto.randomUUID();
-      const channels = { web: { enabled: true } };
 
-      // Personalize the system prompt with onboarding data
       const personalizedPrompt = `${agentConfig.prompt}
 
 USER PROFILE:
@@ -231,32 +225,19 @@ ${data.role ? `- Role: ${data.role.trim()}` : ''}
 
 Respond in a ${data.communicationStyle} style. Adapt to these preferences naturally.`;
 
-      await setDoc(doc(db, 'agents', agentId), {
-        id: agentId,
-        ownerId: user.uid,
+      await agentsApi.create({
         name: agentConfig.name,
-        description: `Personalized ${agentConfig.type} agent for ${data.name}`,
-        type: agentConfig.type,
         systemPrompt: personalizedPrompt,
-        model: 'claude',
-        modelConfig: { temperature: 0.7, maxTokens: 4096 },
-        enabledSkills: [],
-        memoryConfig: {
-          maxWorkingMemoryMessages: 50,
-          semanticSearchTopK: 10,
-          episodicSearchTopK: 5,
-          autoApprovalEnabled: data.aiExperience === 'expert',
-          autoApprovalThreshold: 0.85,
-        },
-        channels,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        maxTokens: 4096,
       });
 
       router.replace('/dashboard');
     } catch (err) {
+      // Agent creation fails with 409 when no provider key is stored yet.
+      // The profile update already succeeded, so send them to key setup
+      // rather than stranding them on the last onboarding step.
       console.error('Onboarding error:', err);
+      router.replace('/onboarding/api-key');
     } finally {
       setSaving(false);
     }
@@ -366,7 +347,7 @@ Respond in a ${data.communicationStyle} style. Adapt to these preferences natura
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
               <Briefcase className="h-7 w-7 text-orange-400" />
             </div>
-            <h2 className="text-2xl font-bold text-zinc-100">What will you use Noomachy for?</h2>
+            <h2 className="text-2xl font-bold text-zinc-100">What will you use SafeMemo AI for?</h2>
             <p className="mt-2 text-sm text-zinc-500">We&apos;ll pre-configure your first agent based on this.</p>
           </div>
           <div className="space-y-3">

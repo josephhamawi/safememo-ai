@@ -40,7 +40,7 @@ function createWindow(): void {
     height: WINDOW_HEIGHT,
     minWidth: 900,
     minHeight: 600,
-    title: 'Noomachy',
+    title: 'SafeMemo AI',
     icon: path.join(__dirname, '..', 'assets', 'icon.icns'),
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 15, y: 15 },
@@ -99,7 +99,7 @@ function createWindow(): void {
 function createAppMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'Noomachy',
+      label: 'SafeMemo AI',
       submenu: [
         { role: 'about' },
         { type: 'separator' },
@@ -119,7 +119,7 @@ function createAppMenu(): void {
         { role: 'unhide' },
         { type: 'separator' },
         {
-          label: 'Quit Noomachy',
+          label: 'Quit SafeMemo AI',
           accelerator: 'CmdOrCtrl+Q',
           click: () => {
             isQuitting = true;
@@ -236,14 +236,14 @@ app.whenReady().then(async () => {
   trayManager.create();
 
   // Start MCP server
-  console.log('[Noomachy] Starting MCP server...');
+  console.log('[SafeMemo AI] Starting MCP server...');
   await mcpManager.start();
 
   // Start Cloudflare tunnel to expose MCP publicly
-  console.log('[Noomachy] Starting tunnel...');
+  console.log('[SafeMemo AI] Starting tunnel...');
   const publicUrl = await tunnelManager.start();
   if (publicUrl) {
-    console.log(`[Noomachy] MCP exposed at: ${publicUrl}`);
+    console.log(`[SafeMemo AI] MCP exposed at: ${publicUrl}`);
     // Notify renderer when ready
     mainWindow?.webContents.send('tunnel-ready', publicUrl);
   }
@@ -282,7 +282,7 @@ app.on('second-instance', () => {
 app.on('before-quit', async () => {
   isQuitting = true;
   globalShortcut.unregisterAll();
-  console.log('[Noomachy] Shutting down MCP server...');
+  console.log('[SafeMemo AI] Shutting down MCP server...');
   tunnelManager.stop();
   await mcpManager.stop();
   trayManager.destroy();

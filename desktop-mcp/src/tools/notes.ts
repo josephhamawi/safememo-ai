@@ -188,7 +188,7 @@ export async function lockNote(args: Record<string, unknown>) {
         type: 'text',
         text: `Failed to lock note: ${err instanceof Error ? err.message : String(err)}. ` +
               `Locking requires: (1) a password set in Notes > Settings > Password, ` +
-              `(2) Accessibility permission granted to the Terminal/Noomachy app in System Settings > Privacy & Security > Accessibility.`,
+              `(2) Accessibility permission granted to the Terminal/SafeMemo AI app in System Settings > Privacy & Security > Accessibility.`,
       }],
       isError: true,
     };

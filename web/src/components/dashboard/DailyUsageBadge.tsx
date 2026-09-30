@@ -13,7 +13,7 @@ import { Gauge } from 'lucide-react';
  */
 export default function DailyUsageBadge() {
   const { user } = useAuth();
-  const { spentUSD, capUSD, utilization, loading } = useDailyUsage(
+  const { requests, limit, utilization, loading } = useDailyUsage(
     user?.uid ?? null,
   );
 
@@ -49,7 +49,7 @@ export default function DailyUsageBadge() {
           Daily usage
         </span>
         <span className="font-mono">
-          ${spentUSD.toFixed(2)} / ${capUSD.toFixed(2)}
+          {requests} / {limit} requests
         </span>
       </div>
       <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800/80">

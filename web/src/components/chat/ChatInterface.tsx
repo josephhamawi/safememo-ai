@@ -1,29 +1,29 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import { useAppStore } from '@/store';
-import { useStreamingResponse } from '@/hooks/useStreamingResponse';
-import type { Message } from '@/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bot, Loader2, Square } from 'lucide-react';
+
 import MessageBubble from '@/components/chat/MessageBubble';
 import MessageInput from '@/components/chat/MessageInput';
-import { Loader2, Bot, Square } from 'lucide-react';
-import { parseSlashCommand, findCommand, BUILTIN_COMMANDS } from '@/lib/slashCommands';
 import { useCustomCommands } from '@/hooks/useCustomCommands';
+import { conversations as conversationsApi, streamChat } from '@/lib/api';
+import { BUILTIN_COMMANDS, findCommand, parseSlashCommand } from '@/lib/slashCommands';
+import { useAppStore } from '@/store';
+import type { Message } from '@/types';
 
 interface ChatInterfaceProps {
   agentId: string;
   conversationId: string;
 }
 
+/**
+ * Chat view.
+ *
+ * Firestore streamed the reply by writing one document per token and having
+ * the client subscribe; the server now streams over SSE, so tokens arrive on
+ * the same request that sent the message. Slash-command feedback is local
+ * state — those lines were never conversation history, only UI.
+ */
 export default function ChatInterface({
   agentId,
   conversationId,
@@ -32,206 +32,204 @@ export default function ChatInterface({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
 
-  const { streamingContent, isStreaming } = useAppStore();
+  const isStreaming = streamingContent.length > 0;
+
   const pendingPrompt = useAppStore((s) => s.pendingPrompt);
   const clearPendingPrompt = useAppStore((s) => s.clearPendingPrompt);
-  useStreamingResponse(agentId, conversationId);
   const { commands: customCommands, saveCommand } = useCustomCommands();
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Real-time Firestore listener for messages
+  const loadMessages = useCallback(async () => {
+    try {
+      const rows = await conversationsApi.messages(conversationId);
+      setLocalMessages(
+        rows.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.createdAt,
+        })) as unknown as Message[],
+      );
+      setError(null);
+    } catch (err) {
+      // A conversation the server has not seen yet is expected right after
+      // it is started from the dashboard — not an error worth showing.
+      console.error('Failed to load messages:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationId]);
+
   useEffect(() => {
     if (!agentId || !conversationId) return;
-
     setLoading(true);
-    setError(null);
+    void loadMessages();
+  }, [agentId, conversationId, loadMessages]);
 
-    const messagesRef = collection(
-      db,
-      'agents',
-      agentId,
-      'conversations',
-      conversationId,
-      'messages'
-    );
-    const q = query(messagesRef, orderBy('timestamp', 'asc'));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const docs = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Message[];
-        setLocalMessages(docs);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Messages listener error:', err);
-        setError('Failed to load messages. Please try again.');
-        setLoading(false);
-      }
-    );
-
-    return unsubscribe;
-  }, [agentId, conversationId]);
-
-  // Auto-scroll to bottom on new messages or streaming content
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
 
+  /** Local-only notice, e.g. slash-command feedback. Never persisted. */
+  const addSystemMessage = useCallback((content: string) => {
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        id: `local-${crypto.randomUUID()}`,
+        role: 'system',
+        content,
+        timestamp: new Date().toISOString(),
+      } as unknown as Message,
+    ]);
+  }, []);
+
   const handleSend = useCallback(
     async (content: string) => {
-      if (sending) return;
+      if (sending || !content.trim()) return;
 
-      // -------- Slash command interception --------
-      const messagesRefSlash = collection(
-        db,
-        'agents',
-        agentId,
-        'conversations',
-        conversationId,
-        'messages'
-      );
-
+      // ---- Slash commands -------------------------------------------------
+      // parseSlashCommand returns a discriminated union; switch on `type`.
       const parsed = parseSlashCommand(content);
       if (parsed) {
-        // /set name prompt — save a custom command
-        if (parsed.type === 'set') {
-          try {
-            await saveCommand(parsed.name, parsed.prompt);
-            await addDoc(messagesRefSlash, {
-              role: 'system',
-              content: `✅ Saved command \`/${parsed.name}\`. Run it anytime by typing \`/${parsed.name}\`.`,
-              timestamp: serverTimestamp(),
-            });
-          } catch (err) {
-            await addDoc(messagesRefSlash, {
-              role: 'system',
-              content: `❌ Failed to save command: ${err instanceof Error ? err.message : String(err)}`,
-              timestamp: serverTimestamp(),
-            });
-          }
-          return;
-        }
-
-        // /list — show available commands
-        if (parsed.type === 'list') {
-          const allNames = [
-            ...BUILTIN_COMMANDS.map((c) => `\`/${c.name}\` — ${c.description}`),
-            ...customCommands.map((c) => `\`/${c.name}\` — ${c.description}`),
-          ].join('\n');
-          await addDoc(messagesRefSlash, {
-            role: 'system',
-            content: `**Available commands:**\n${allNames || '_(none)_'}\n\nCreate your own with \`/set <name> <prompt>\``,
-            timestamp: serverTimestamp(),
-          });
-          return;
-        }
-
-        // /help — usage hint
-        if (parsed.type === 'help') {
-          await addDoc(messagesRefSlash, {
-            role: 'system',
-            content:
-              '**Slash commands:**\n' +
-              '- `/<name>` — run a saved command\n' +
-              '- `/set <name> <prompt>` — save a new custom command\n' +
-              '- `/list` — show all commands\n' +
-              '- `/help` — this message\n\n' +
-              'Open the **Commands** tab in the right panel for the full list.',
-            timestamp: serverTimestamp(),
-          });
-          return;
-        }
-
-        // /<command> — expand and continue as a normal message
-        if (parsed.type === 'invoke') {
-          const cmd = findCommand(parsed.name, customCommands);
-          if (cmd) {
-            content = cmd.prompt; // expand to the full prompt
-          } else {
-            await addDoc(messagesRefSlash, {
-              role: 'system',
-              content: `❓ Unknown command \`/${parsed.name}\`. Type \`/list\` to see available commands.`,
-              timestamp: serverTimestamp(),
-            });
+        switch (parsed.type) {
+          case 'set': {
+            try {
+              await saveCommand(parsed.name, parsed.prompt);
+              addSystemMessage(
+                `✅ Saved command \`/${parsed.name}\`. Run it anytime by typing \`/${parsed.name}\`.`,
+              );
+            } catch (err) {
+              addSystemMessage(
+                `❌ Failed to save command: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
             return;
           }
+
+          case 'list': {
+            const allNames = [...BUILTIN_COMMANDS, ...customCommands]
+              .map((c) => `- \`/${c.name}\` — ${c.description}`)
+              .join('\n');
+            addSystemMessage(
+              `**Available commands:**\n${allNames || '_(none)_'}\n\nCreate your own with \`/set <name> <prompt>\``,
+            );
+            return;
+          }
+
+          case 'help': {
+            addSystemMessage(
+              'Usage: `/set <name> <prompt>` to save a command, `/list` to see them all.',
+            );
+            return;
+          }
+
+          case 'invoke': {
+            const command = findCommand(parsed.name, customCommands);
+            if (!command) {
+              addSystemMessage(
+                `❓ Unknown command \`/${parsed.name}\`. Type \`/list\` to see available commands.`,
+              );
+              return;
+            }
+            content = command.prompt;
+            break;
+          }
         }
       }
-      // -------- End slash command interception --------
 
+      // ---- Send -----------------------------------------------------------
       setSending(true);
       setError(null);
+      setStreamingContent('');
 
-      const idempotencyKey = crypto.randomUUID();
+      const sentContent = content;
+
+      // Optimistic echo so the user's own message appears immediately.
+      setLocalMessages((prev) => [
+        ...prev,
+        {
+          id: `local-${crypto.randomUUID()}`,
+          role: 'user',
+          content: sentContent,
+          timestamp: new Date().toISOString(),
+        } as unknown as Message,
+      ]);
+
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       try {
-        // Write user message to Firestore
-        const messagesRef = collection(
-          db,
-          'agents',
-          agentId,
-          'conversations',
-          conversationId,
-          'messages'
-        );
-
-        await addDoc(messagesRef, {
-          role: 'user',
-          content,
-          timestamp: serverTimestamp(),
-          metadata: { idempotencyKey },
-        });
-
-        // Get auth token for API call
-        const token = await auth.currentUser?.getIdToken();
-
-        // Call agent API endpoint
-        abortRef.current = new AbortController();
-        const res = await fetch('/api/chat', {
-          signal: abortRef.current.signal,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        await streamChat(
+          { agentId, conversationId, message: sentContent },
+          (event) => {
+            switch (event.type) {
+              case 'text':
+                setStreamingContent((prev) => prev + event.text);
+                break;
+              case 'tool_start':
+                setStreamingContent((prev) => prev + `\n\n_Using ${event.toolName}…_\n\n`);
+                break;
+              case 'error':
+                setError(event.message);
+                break;
+              default:
+                break;
+            }
           },
-          body: JSON.stringify({
-            agentId,
-            conversationId,
-            message: content,
-            idempotencyKey,
-          }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Request failed (${res.status})`);
-        }
-      } catch (err) {
-        console.error('Send error:', err);
-        setError(
-          err instanceof Error ? err.message : 'Failed to send message.'
+          controller.signal,
         );
+
+        // Re-read from the server so the optimistic echo is replaced by the
+        // persisted rows and their real ids.
+        await loadMessages();
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error('Send error:', err);
+          setError(err instanceof Error ? err.message : 'Failed to send message.');
+        }
       } finally {
+        setStreamingContent('');
         setSending(false);
+        abortRef.current = null;
       }
     },
-    [agentId, conversationId, sending, customCommands, saveCommand]
+    [
+      agentId,
+      conversationId,
+      sending,
+      customCommands,
+      saveCommand,
+      addSystemMessage,
+      loadMessages,
+    ],
   );
 
-  // Listen for pending prompts (e.g. from clicking a command in the panel)
+  // A conversation started from the dashboard hands its first message over
+  // here, so the reply streams in this view rather than being sent blind.
+  useEffect(() => {
+    const key = `safememo:pending:${conversationId}`;
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return;
+    sessionStorage.removeItem(key);
+    try {
+      const { message } = JSON.parse(raw) as { message: string };
+      if (message) void handleSend(message);
+    } catch {
+      // Malformed entry; nothing to send.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
   useEffect(() => {
     if (pendingPrompt && pendingPrompt.content) {
       const content = pendingPrompt.content;
       clearPendingPrompt();
-      handleSend(content);
+      void handleSend(content);
     }
   }, [pendingPrompt, handleSend, clearPendingPrompt]);
 

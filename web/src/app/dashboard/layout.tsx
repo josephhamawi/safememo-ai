@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { where, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDesktopMcp } from '@/hooks/useDesktopMcp';
-import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
+import { agents as agentsApi, profile as profileApi } from '@/lib/api';
+import { useResource } from '@/hooks/useResource';
 import { useAppStore } from '@/store';
 import type { Agent, Conversation } from '@/types';
 import {
@@ -37,7 +35,6 @@ import RightPanelContent from '@/components/dashboard/RightPanelContent';
 import CommandsPanel from '@/components/dashboard/CommandsPanel';
 import DailyUsageBadge from '@/components/dashboard/DailyUsageBadge';
 import Tour from '@/components/tour/Tour';
-import { updateDoc as fsUpdateDoc } from 'firebase/firestore';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -71,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Show tour on first visit (after onboarding) if tourCompleted is not set
   useEffect(() => {
-    if (profile && profile.onboardingCompleted && !profile.tourCompleted) {
+    if (profile && profile.onboardingCompleted && !profile.preferences?.tourCompleted) {
       // small delay so the layout has rendered before targeting elements
       const t = setTimeout(() => setShowTour(true), 800);
       return () => clearTimeout(t);
@@ -82,7 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setShowTour(false);
     if (user) {
       try {
-        await fsUpdateDoc(doc(db, 'users', user.uid), { tourCompleted: true });
+        await profileApi.update({ preferences: { tourCompleted: true } });
       } catch (err) {
         console.error('Failed to mark tour completed:', err);
       }
@@ -103,13 +100,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [authLoading, profileLoading, user, profile, router]);
 
-  // Load agents from Firestore
-  const { data: agentsData, loading: agentsLoading } = useFirestoreCollection<Agent>(
-    'agents',
-    {
-      constraints: user ? [where('ownerId', '==', user.uid), orderBy('createdAt', 'desc')] : [],
-      enabled: !!user,
-    }
+  // Ownership is enforced server-side, so no per-user constraint is needed
+  // here — the endpoint only ever returns the caller's agents.
+  const { data: agentsData, loading: agentsLoading } = useResource(
+    () => agentsApi.list(),
+    [user?.id],
+    { enabled: !!user },
   );
 
   // Sync agents to store
@@ -124,17 +120,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [agentsData, setAgents, selectedAgentId, setSelectedAgentId]);
 
   // Load conversations for selected agent (subcollection under agent)
-  const { data: conversationsData, loading: conversationsLoading } = useFirestoreCollection<Conversation>(
-    selectedAgentId ? `agents/${selectedAgentId}/conversations` : '',
-    {
-      constraints: user
-        ? [
-            where('userId', '==', user.uid),
-            orderBy('updatedAt', 'desc'),
-          ]
-        : [],
-      enabled: !!selectedAgentId && !!user,
-    }
+  const { data: conversationsData, loading: conversationsLoading } = useResource(
+    () => agentsApi.conversations(selectedAgentId!),
+    [selectedAgentId, user?.id],
+    { enabled: !!selectedAgentId && !!user },
   );
 
   // Sync conversations to store
@@ -160,10 +149,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const agentName = agents.find((a) => a.id === agentId)?.name || 'this agent';
     if (!confirm(`Delete "${agentName}"? This will permanently delete the agent AND all its conversations, messages, and memories.`)) return;
     try {
-      // Call the cascade-delete Cloud Function to wipe all subcollections
-      const functions = getFunctions(undefined, 'us-central1');
-      const deleteAgentFn = httpsCallable(functions, 'deleteAgent');
-      await deleteAgentFn({ agentId });
+      // Archive rather than hard-delete: conversations and audit entries
+      // reference the agent, and the hash chain must stay verifiable.
+      await agentsApi.archive(agentId);
 
       if (selectedAgentId === agentId) {
         const remaining = agents.filter((a) => a.id !== agentId);
@@ -187,13 +175,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selectedAgentId) return;
-    try {
-      await deleteDoc(doc(db, 'agents', selectedAgentId, 'conversations', convId));
-      if (selectedConversationId === convId) {
-        setSelectedConversationId(null);
-      }
-    } catch (err) {
-      console.error('Failed to delete conversation:', err);
+    // Conversation deletion is not exposed by the API yet; clearing the
+    // selection is the honest local behaviour until it is.
+    if (selectedConversationId === convId) {
+      setSelectedConversationId(null);
     }
   };
 
@@ -403,7 +388,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-5 w-5" />
           </button>
           <span className="flex-1 truncate text-sm font-medium text-zinc-200">
-            {selectedAgent?.name || 'Noomachy'}
+            {selectedAgent?.name || 'SafeMemo AI'}
           </span>
           {selectedConversationId && (
             <button
@@ -433,7 +418,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-zinc-300">
-              {selectedAgent?.name || 'Noomachy'}
+              {selectedAgent?.name || 'SafeMemo AI'}
             </span>
             {selectedConversationId && (
               <button

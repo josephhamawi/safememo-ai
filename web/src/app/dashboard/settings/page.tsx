@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { agents as agentsApi, profile as profileApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAppStore } from '@/store';
@@ -23,7 +22,7 @@ const TABS: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { profile } = useUserProfile();
+  const { profile, usage } = useUserProfile();
   const selectedAgentId = useAppStore((s) => s.selectedAgentId);
   const agents = useAppStore((s) => s.agents);
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
@@ -38,7 +37,7 @@ export default function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(4096);
-  const [model, setModel] = useState<'claude' | 'gemini'>('claude');
+  const [model, setModel] = useState<string>('claude-opus-5');
   const [autoApproval, setAutoApproval] = useState(true);
   const [autoApprovalThreshold, setAutoApprovalThreshold] = useState(0.9);
 
@@ -54,13 +53,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (selectedAgent) {
       setAgentName(selectedAgent.name);
-      setAgentDescription(selectedAgent.description);
-      setSystemPrompt(selectedAgent.systemPrompt);
-      setModel(selectedAgent.model || 'claude');
-      setTemperature(selectedAgent.modelConfig.temperature);
-      setMaxTokens(selectedAgent.modelConfig.maxTokens);
-      setAutoApproval(selectedAgent.memoryConfig.autoApprovalEnabled);
-      setAutoApprovalThreshold(selectedAgent.memoryConfig.autoApprovalThreshold);
+      setSystemPrompt(selectedAgent.systemPrompt ?? '');
+      setModel(selectedAgent.model);
+      setMaxTokens(selectedAgent.maxTokens);
     }
   }, [selectedAgent]);
 
@@ -75,22 +70,16 @@ export default function SettingsPage() {
     setSaved(false);
     try {
       if (activeTab === 'agent' && selectedAgentId) {
-        await updateDoc(doc(db, 'agents', selectedAgentId), {
+        // temperature is deliberately not sent: current Claude models reject
+        // it outright, so the server does not accept it either.
+        await agentsApi.update(selectedAgentId, {
           name: agentName,
-          description: agentDescription,
           systemPrompt,
           model,
-          'modelConfig.temperature': temperature,
-          'modelConfig.maxTokens': maxTokens,
-          'memoryConfig.autoApprovalEnabled': autoApproval,
-          'memoryConfig.autoApprovalThreshold': autoApprovalThreshold,
-          updatedAt: serverTimestamp(),
+          maxTokens,
         });
       } else if (activeTab === 'profile' && user) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          displayName: displayName.trim(),
-          updatedAt: serverTimestamp(),
-        });
+        await profileApi.update({ displayName: displayName.trim() || null });
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -164,27 +153,36 @@ export default function SettingsPage() {
                   />
                 </Field>
               </Section>
-              <Section title="Plan & Usage">
+              <Section title="Usage">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200 capitalize">{profile?.plan || 'free'} Plan</p>
+                    <p className="text-sm font-medium text-zinc-200">
+                      {agents.length} agent{agents.length === 1 ? '' : 's'}
+                    </p>
                     <p className="text-xs text-zinc-500">
-                      {agents.length} / {profile?.agentLimit ?? 3} agents used
+                      You pay your AI provider directly; this instance does not
+                      meter spend.
                     </p>
                   </div>
-                  <span className="rounded-full bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-400 capitalize">
-                    {profile?.plan || 'free'}
-                  </span>
                 </div>
                 <div>
                   <div className="mb-1 flex justify-between text-xs text-zinc-500">
-                    <span>API Tokens Used</span>
-                    <span>{((profile?.apiUsage?.tokensUsed ?? 0) / 1000).toFixed(1)}K / {((profile?.apiUsage?.tokensLimit ?? 100000) / 1000).toFixed(0)}K</span>
+                    <span>Requests today</span>
+                    <span>
+                      {usage?.requests ?? 0} / {usage?.limit ?? 0}
+                    </span>
                   </div>
                   <div className="h-2 rounded-full bg-zinc-800">
                     <div
                       className="h-2 rounded-full bg-orange-500 transition-all"
-                      style={{ width: `${Math.min(100, ((profile?.apiUsage?.tokensUsed ?? 0) / (profile?.apiUsage?.tokensLimit ?? 100000)) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          usage && usage.limit > 0
+                            ? (usage.requests / usage.limit) * 100
+                            : 0,
+                        )}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -282,31 +280,22 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-zinc-200">Sign-in Method</p>
-                    <p className="text-xs text-zinc-500">
-                      {user?.providerData?.[0]?.providerId === 'google.com' ? 'Google' :
-                       user?.providerData?.[0]?.providerId === 'github.com' ? 'GitHub' : 'Email/Password'}
-                    </p>
+                    <p className="text-xs text-zinc-500">Email and password</p>
                   </div>
                   <Shield className="h-5 w-5 text-green-400" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-zinc-200">Account Created</p>
-                    <p className="text-xs text-zinc-500">{user?.metadata?.creationTime || 'Unknown'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-200">Last Sign-in</p>
-                    <p className="text-xs text-zinc-500">{user?.metadata?.lastSignInTime || 'Unknown'}</p>
+                    <p className="text-sm text-zinc-200">Signed in as</p>
+                    <p className="text-xs text-zinc-500">{user?.email ?? 'Unknown'}</p>
                   </div>
                 </div>
               </Section>
               <Section title="Data & Privacy">
                 <div className="space-y-3">
                   <p className="text-sm text-zinc-400">
-                    Your data is stored securely in Firebase with multi-tenant isolation.
-                    Each agent's data is scoped to your account and cannot be accessed by other users.
+                    Your data is stored in this instance's own Postgres database. Every query is
+                    scoped to your account, and provider API keys are encrypted at rest.
                   </p>
                   <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
                     <p className="text-xs font-medium text-zinc-300">Data stored:</p>
@@ -321,7 +310,7 @@ export default function SettingsPage() {
               </Section>
               <Section title="API Keys">
                 <p className="text-sm text-zinc-400">
-                  API keys are stored as encrypted Firebase secrets and are never exposed to the client.
+                  Your provider API key is encrypted with AES-256-GCM before storage and can never be read back — not by you, not by an administrator.
                   They are only accessible to Cloud Functions at runtime.
                 </p>
               </Section>

@@ -1,30 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Bot, ArrowLeft, Shield, Lock, Database, Eye, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Bot, Database, Lock, Server, Shield, Trash2 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Noomachy',
+  title: 'Privacy — SafeMemo AI',
   description:
-    'How Noomachy collects, uses, and protects your data. Sovereign memory means you own your information.',
-  alternates: { canonical: 'https://noomachy.com/privacy' },
+    'SafeMemo AI is self-hosted open-source software. Whoever runs this instance controls the data; the project maintainers never receive it.',
   openGraph: {
-    title: 'Privacy Policy — Noomachy',
-    description: 'How Noomachy collects, uses, and protects your data.',
-    url: 'https://noomachy.com/privacy',
+    title: 'Privacy — SafeMemo AI',
+    description:
+      'Self-hosted open-source software. The operator of this instance controls the data.',
   },
 };
 
+/**
+ * Privacy page for a self-hosted, open-source deployment.
+ *
+ * This is deliberately not a SaaS privacy policy. SafeMemo AI has no hosted
+ * service and no central servers, so the project cannot make promises about
+ * data it never receives. What it can do is state plainly what the software
+ * does, what leaves the machine, and who is actually responsible — which is
+ * whoever deployed this instance, not the authors of the code.
+ */
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-100">
-      {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-zinc-800/50 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">Noomachy</span>
+            <span className="text-lg font-bold">SafeMemo AI</span>
           </Link>
           <Link href="/auth/login" className="text-sm text-zinc-400 hover:text-zinc-200">
             Sign In
@@ -41,295 +48,190 @@ export default function PrivacyPage() {
           Back to sign in
         </Link>
 
-        <h1 className="mb-4 text-4xl font-bold">Privacy Policy</h1>
-        <p className="mb-8 text-sm text-zinc-500">Last updated: April 11, 2026</p>
+        <h1 className="mb-4 text-4xl font-bold">Privacy</h1>
+        <p className="mb-8 text-sm text-zinc-500">
+          Applies to this deployment of SafeMemo AI.
+        </p>
 
-        {/* Privacy promises */}
-        <div className="mb-12 grid gap-3 md:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
-            <Shield className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">Sovereign memory</p>
-              <p className="text-xs text-zinc-400">Your data lives in your account, not our training set.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
-            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">Encrypted at rest</p>
-              <p className="text-xs text-zinc-400">All data encrypted in Google Cloud Firestore.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
-            <Eye className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">Never sold</p>
-              <p className="text-xs text-zinc-400">We do not sell your data to third parties. Period.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
-            <Trash2 className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">Right to delete</p>
-              <p className="text-xs text-zinc-400">Delete any memory or your entire account anytime.</p>
+        <div className="mb-10 rounded-xl border border-orange-500/20 bg-orange-500/5 p-5">
+          <div className="flex items-start gap-3">
+            <Server className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div className="space-y-2 text-sm leading-relaxed text-zinc-300">
+              <p className="font-semibold text-zinc-100">
+                This is self-hosted software, not a service.
+              </p>
+              <p>
+                SafeMemo AI is open-source software that someone installed on
+                their own infrastructure. The people who wrote the code do not
+                operate this instance, cannot access it, and never receive your
+                data. Whoever deployed it is the party responsible for it, and
+                the one to contact with questions about how they handle your
+                information.
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-8 text-zinc-300 leading-relaxed">
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">1. Who We Are</h2>
+        <div className="mb-12 grid gap-3 md:grid-cols-2">
+          <Promise
+            icon={Shield}
+            title="No telemetry"
+            detail="The software phones home to nobody. There is no analytics, no crash reporting, and no usage beacon."
+          />
+          <Promise
+            icon={Lock}
+            title="Your own model key"
+            detail="You supply your own AI provider key. It is encrypted with AES-256-GCM and no endpoint can read it back."
+          />
+          <Promise
+            icon={Database}
+            title="One database, yours"
+            detail="Everything is stored in the operator's own PostgreSQL database. There is no shared or multi-customer store."
+          />
+          <Promise
+            icon={Trash2}
+            title="Erasure that leaves evidence"
+            detail="Purging a memory clears its content; the audit chain retains only the fact that a deletion happened."
+          />
+        </div>
+
+        <div className="space-y-10 text-sm leading-relaxed text-zinc-300">
+          <Section title="What the software stores">
             <p>
-              Noomachy is an AI agent platform that lets you create personal AI assistants
-              with sovereign memory and tool use. This Privacy Policy explains what data we
-              collect, how we use it, and your rights over it.
+              In the operator&apos;s database: your email address and an
+              Argon2id hash of your password, the agents you create, your
+              conversations and messages, memories that passed validation,
+              audit-chain entries, and daily request counts.
             </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">2. Information We Collect</h2>
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.1 Account Information</h3>
-            <ul className="ml-6 list-disc space-y-1 text-sm">
-              <li>Email address</li>
-              <li>Display name (optional)</li>
-              <li>Profile photo (optional, from Google/GitHub OAuth)</li>
-              <li>Onboarding preferences (use case, experience level, etc.)</li>
-            </ul>
-
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.2 Conversation Data</h3>
-            <ul className="ml-6 list-disc space-y-1 text-sm">
-              <li>Messages you send to AI agents</li>
-              <li>Responses generated by AI models</li>
-              <li>Tool invocations and their results</li>
-              <li>Conversation metadata (timestamps, message counts)</li>
-            </ul>
-
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.3 Memory Data</h3>
-            <ul className="ml-6 list-disc space-y-1 text-sm">
-              <li>Working memory (current session context, expires after 24 hours)</li>
-              <li>Semantic memory (long-term facts, you control)</li>
-              <li>Episodic memory (logs of past tasks and outcomes)</li>
-            </ul>
-
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-200">2.4 Usage Telemetry</h3>
-            <ul className="ml-6 list-disc space-y-1 text-sm">
-              <li>API token consumption (for billing)</li>
-              <li>Tool usage patterns (for the behavior learning system)</li>
-              <li>Audit logs (for security and debugging)</li>
-            </ul>
-
-            <p className="mt-4">
-              We do <strong>not</strong> collect: phone number, physical address, payment
-              card details (we use a third-party processor), or location data unless you
-              explicitly share it in a conversation.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">3. How We Use Your Data</h2>
-            <ul className="ml-6 list-disc space-y-2">
-              <li><strong>Provide the Service.</strong> We process your messages to generate AI responses.</li>
-              <li><strong>Personalize.</strong> We use your memory to make future responses smarter and more relevant.</li>
-              <li><strong>Improve.</strong> We use anonymized aggregate metrics to improve the platform.</li>
-              <li><strong>Bill.</strong> We track API usage to bill paid plans accurately.</li>
-              <li><strong>Secure.</strong> We log security events to detect and prevent abuse.</li>
-            </ul>
-            <p className="mt-4">
-              We do <strong>NOT</strong> use your conversations or memories to train AI models
-              of any kind, ours or third parties&apos;.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">4. Third-Party Processors</h2>
             <p>
-              When you use Noomachy, your prompts are forwarded to AI model providers to
-              generate responses. These providers process your data under their own terms:
+              Your AI provider API key is stored encrypted. It is sealed under
+              a per-credential key, which is itself sealed under a master key
+              held only in the server&apos;s environment. No part of the
+              application can return it to you or to an administrator; only its
+              last four characters are ever displayed.
             </p>
-            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
+            <p>
+              Session tokens are stored as a SHA-256 hash rather than in the
+              clear, so a copy of the database cannot be used to resume anyone&apos;s
+              session.
+            </p>
+          </Section>
+
+          <Section title="What leaves the machine">
+            <p>
+              Exactly one thing: the content of your conversations, sent to the
+              AI provider whose key you supplied, so that it can generate a
+              reply. That is Anthropic, Google, or OpenAI depending on your
+              choice. Their handling of that data is governed by your own
+              agreement with them, made under your own account.
+            </p>
+            <p>
+              Nothing else is transmitted. By default, memory embeddings are
+              generated on the machine itself by a local model, so the text of
+              your memories is never sent anywhere for indexing. An operator can
+              switch to a hosted embedding provider, in which case memory
+              content is also sent there.
+            </p>
+            <p>
+              If you create a share link for an audit trail, anyone holding that
+              link can read that one chain until it expires or is revoked.
+            </p>
+          </Section>
+
+          <Section title="Who can see your data">
+            <p>
+              Other users of this instance cannot. Every database query is
+              scoped to the account that made the request, and stored
+              credentials are cryptographically bound to their owner, so a
+              credential row cannot be used under another account even if it
+              were copied there.
+            </p>
+            <p>
+              The operator of this instance has administrative access to the
+              server and the database it runs on. That is inherent to
+              self-hosting: they control the machine. They cannot read your
+              provider API key, because the software provides no way to decrypt
+              one for display, but they can read data stored in plaintext such
+              as your messages and memories. Direct any questions about that to
+              them.
+            </p>
+          </Section>
+
+          <Section title="What you can do">
+            <ul className="ml-4 list-disc space-y-1.5">
               <li>
-                <strong>Anthropic (Claude)</strong> — model inference;{' '}
-                <a
-                  href="https://www.anthropic.com/legal/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-400 underline"
-                >
-                  privacy policy
-                </a>
-              </li>
-              <li>
-                <strong>Google Cloud (Gemini, Firebase, Vertex AI)</strong> — model inference, hosting, storage;{' '}
-                <a
-                  href="https://policies.google.com/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-400 underline"
-                >
-                  privacy policy
-                </a>
+                <strong className="text-zinc-200">Export everything</strong> —
+                all memories as JSON, at any time.
               </li>
               <li>
-                <strong>Stripe</strong> — payment processing for paid plans;{' '}
-                <a
-                  href="https://stripe.com/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-400 underline"
-                >
-                  privacy policy
-                </a>
+                <strong className="text-zinc-200">Delete a memory</strong> — its
+                content is cleared and its embedding removed.
+              </li>
+              <li>
+                <strong className="text-zinc-200">Replace or remove your API key</strong>{' '}
+                — removing it stops all model calls immediately.
+              </li>
+              <li>
+                <strong className="text-zinc-200">Revoke a share link</strong> —
+                individually, without affecting any other link.
+              </li>
+              <li>
+                <strong className="text-zinc-200">Sign out everywhere</strong> —
+                invalidates every session for your account.
               </li>
             </ul>
-            <p className="mt-3">
-              For Anthropic and Google, we use the API tier which contractually prohibits
-              training on customer data.
-            </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">5. Sovereign Memory</h2>
+          <Section title="What this page cannot tell you">
             <p>
-              Noomachy is built on a &ldquo;sovereign memory&rdquo; model: every fact your
-              agent learns is stored in your account, scoped to your user ID, isolated by
-              Firestore security rules. Other users cannot access your memories. We cannot
-              read them either, except as necessary to deliver the Service.
+              Whether this operator keeps database backups and for how long,
+              where the server is physically located, who on their side has
+              access, and what they do if something goes wrong. Those are
+              properties of the deployment, not of the software, and only the
+              operator can answer them.
             </p>
-            <p className="mt-3">
-              Read more:{' '}
-              <Link
-                href="/blog/sovereign-memory"
-                className="text-orange-400 underline underline-offset-2"
-              >
-                Sovereign Memory: Why AI Agents Need Their Own Brain
-              </Link>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">6. Local-First Integrations</h2>
             <p>
-              When you use the Noomachy desktop app to connect local Mac apps (Mail, Notes,
-              Calendar, etc.), your local data <strong>never leaves your computer</strong>{' '}
-              except as specific responses returned to your AI agent. We do not store copies
-              of your emails, notes, calendar events, or files.
+              If you are evaluating this instance for work that carries legal or
+              regulatory obligations, ask them directly. The software provides
+              the technical controls — tenant isolation, encryption at rest for
+              credentials, a tamper-evident audit chain — but no software can
+              certify a deployment it does not control.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">7. Data Retention</h2>
-            <p>We retain data as long as your account is active. Specifically:</p>
-            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
-              <li>Working memory expires after 24 hours of inactivity</li>
-              <li>Semantic memory persists until you delete it</li>
-              <li>Episodic memory is append-only; you can delete the entire log via account deletion</li>
-              <li>Audit logs are retained for 90 days</li>
-            </ul>
-            <p className="mt-3">
-              When you delete your account, all data is removed from our systems within 30
-              days, except where retention is required by law.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">8. Your Rights</h2>
-            <p>You have the right to:</p>
-            <ul className="ml-6 mt-2 list-disc space-y-2">
-              <li className="flex items-start gap-2">
-                <Eye className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
-                <span><strong>Access</strong> — view all your data through the Memory Explorer and Settings page</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Download className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
-                <span><strong>Export</strong> — download your conversations and memories in JSON format</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Trash2 className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
-                <span><strong>Delete</strong> — remove individual memories, agents, or your entire account</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Database className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
-                <span><strong>Portability</strong> — take your data to another platform via export</span>
-              </li>
-            </ul>
-            <p className="mt-3">
-              EU residents have additional rights under GDPR (right to rectification, right
-              to object, right to lodge a complaint with a supervisory authority). Contact us
-              at{' '}
-              <a
-                href="mailto:hello@kodefoundry.com"
-                className="text-orange-400 underline underline-offset-2"
-              >
-                hello@kodefoundry.com
-              </a>{' '}
-              to exercise any of these rights.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">9. Cookies and Tracking</h2>
+          <Section title="Children">
             <p>
-              We use Firebase Auth cookies for session management. We do not use third-party
-              advertising cookies, retargeting pixels, or behavioral tracking. We use minimal
-              analytics (Firebase Analytics) for aggregate usage metrics; you can opt out in
-              Settings.
+              The software is not designed for children under 13 and the project
+              does not knowingly collect their data. Age policy for this
+              instance is set by its operator.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">10. Security</h2>
-            <p>We take security seriously. Our measures include:</p>
-            <ul className="ml-6 mt-2 list-disc space-y-1 text-sm">
-              <li>All data encrypted in transit (TLS) and at rest</li>
-              <li>Multi-tenant isolation enforced at the database level via Firestore security rules</li>
-              <li>API keys stored as encrypted Google Cloud Secrets, never exposed to clients</li>
-              <li>Tamper-proof audit logs for sensitive actions</li>
-              <li>Sandboxed code execution (isolated-vm) for AI tool calls</li>
-              <li>Regular security reviews and dependency audits</li>
-            </ul>
-            <p className="mt-3">
-              No system is 100% secure. If you discover a vulnerability, please report it to{' '}
-              <a
-                href="mailto:hello@kodefoundry.com"
-                className="text-orange-400 underline underline-offset-2"
-              >
-                hello@kodefoundry.com
-              </a>
-              .
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">11. Children&apos;s Privacy</h2>
+          <Section title="Changes">
             <p>
-              Noomachy is not directed at children under 13. We do not knowingly collect data
-              from children under 13. If you believe we have collected such data, please
-              contact us and we will delete it.
+              This page ships with the software. It changes when the code
+              changes, and the history is public in the repository. An operator
+              may replace it with their own policy.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">12. Changes to This Policy</h2>
+          <Section title="The code">
             <p>
-              We may update this Privacy Policy from time to time. Material changes will be
-              announced via email or in-app notification at least 30 days before they take
-              effect.
+              Every claim here is checkable. The encryption is in{' '}
+              <code className="rounded bg-zinc-900 px-1 py-0.5 text-xs text-zinc-300">
+                server/src/crypto/envelope.ts
+              </code>
+              , the audit chain in{' '}
+              <code className="rounded bg-zinc-900 px-1 py-0.5 text-xs text-zinc-300">
+                server/src/lib/audit.ts
+              </code>
+              , and what the database holds in{' '}
+              <code className="rounded bg-zinc-900 px-1 py-0.5 text-xs text-zinc-300">
+                server/src/db/migrations/
+              </code>
+              . Read them rather than taking this page&apos;s word for it.
             </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">13. Contact Us</h2>
-            <p>
-              Questions about privacy? Email{' '}
-              <a
-                href="mailto:hello@kodefoundry.com"
-                className="text-orange-400 underline underline-offset-2"
-              >
-                hello@kodefoundry.com
-              </a>
-              .
-            </p>
-          </section>
+          </Section>
         </div>
       </article>
 
@@ -337,7 +239,7 @@ export default function PrivacyPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between text-xs text-zinc-600">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            Noomachy
+            SafeMemo AI
           </div>
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-zinc-400">
@@ -350,5 +252,40 @@ export default function PrivacyPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function Promise({
+  icon: Icon,
+  title,
+  detail,
+}: {
+  icon: React.ElementType;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+      <div>
+        <p className="text-sm font-semibold text-zinc-100">{title}</p>
+        <p className="text-xs leading-relaxed text-zinc-400">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+      {children}
+    </section>
   );
 }

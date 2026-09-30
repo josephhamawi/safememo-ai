@@ -1,15 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  doc,
-  updateDoc,
-  increment,
-} from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
 import { useAppStore } from '@/store';
 import { Bot, MessageSquare, Plus, Loader2, Send } from 'lucide-react';
 import CreateAgentDialog from '@/components/chat/CreateAgentDialog';
@@ -35,7 +26,7 @@ export default function DashboardPage() {
             <Bot className="h-8 w-8 text-orange-400" />
           </div>
           <h2 className="mb-2 text-xl font-semibold text-zinc-100">
-            Welcome to Noomachy
+            Welcome to SafeMemo AI
           </h2>
           <p className="mb-6 text-sm text-zinc-500">
             Create your first AI agent to get started. Agents can remember conversations,
@@ -68,10 +59,10 @@ export default function DashboardPage() {
             {selectedAgent?.name || 'Agent'}
           </h2>
           <p className="mb-1 text-sm text-zinc-400">
-            {selectedAgent?.description || 'Ready to chat'}
+            {selectedAgent?.systemPrompt?.slice(0, 120) || 'Ready to chat'}
           </p>
           <p className="text-xs text-zinc-600">
-            {selectedAgent?.type} agent &middot; {selectedAgent?.model}
+            {selectedAgent?.provider} &middot; {selectedAgent?.model}
           </p>
         </div>
         <div className="w-full max-w-2xl">
@@ -111,68 +102,17 @@ function NewConversationInput({
       if (!content.trim() || creating) return;
       setCreating(true);
       try {
-        const user = auth.currentUser;
-        if (!user) throw new Error('Not authenticated');
+        // The conversation id is minted client-side and the server creates the
+        // row on first use, so one round trip covers create-and-send.
+        const conversationId = crypto.randomUUID();
 
-        // 1. Create conversation document
-        const convsRef = collection(db, 'agents', agentId, 'conversations');
-        const convDoc = await addDoc(convsRef, {
-          agentId,
-          userId: user.uid,
-          title: content.substring(0, 60) + (content.length > 60 ? '...' : ''),
-          source: 'web',
-          messageCount: 1,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-
-        // 2. Add the first message
-        const messagesRef = collection(
-          db,
-          'agents',
-          agentId,
-          'conversations',
-          convDoc.id,
-          'messages'
+        // Navigate immediately; the chat view owns the streaming request so
+        // the reply renders token by token instead of after a full round trip.
+        onConversationCreated(conversationId);
+        sessionStorage.setItem(
+          `safememo:pending:${conversationId}`,
+          JSON.stringify({ agentId, message: content }),
         );
-        await addDoc(messagesRef, {
-          role: 'user',
-          content,
-          timestamp: serverTimestamp(),
-          metadata: { idempotencyKey: crypto.randomUUID() },
-        });
-
-        // 3. Call the chat API for a response
-        const token = await user.getIdToken();
-        try {
-          const chatRes = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              agentId,
-              conversationId: convDoc.id,
-              message: content,
-              idempotencyKey: crypto.randomUUID(),
-            }),
-          });
-          const chatBody = await chatRes.json().catch(() => null);
-          if (chatBody?.mock && chatBody.content) {
-            await addDoc(messagesRef, {
-              role: 'assistant',
-              content: chatBody.content,
-              timestamp: serverTimestamp(),
-              metadata: { mock: true },
-            });
-          }
-        } catch (err) {
-          console.error('Chat API error:', err);
-        }
-
-        // 4. Navigate to the new conversation
-        onConversationCreated(convDoc.id);
       } catch (err) {
         console.error('Failed to create conversation:', err);
       } finally {

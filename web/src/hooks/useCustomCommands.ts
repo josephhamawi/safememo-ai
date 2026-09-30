@@ -1,87 +1,49 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { useCallback } from 'react';
+
+import { commands as commandsApi } from '@/lib/api';
 import type { SlashCommand } from '@/lib/slashCommands';
+import { useAuth } from './useAuth';
+import { useResource } from './useResource';
 
-interface FirestoreCommand {
-  name: string;
-  prompt: string;
-  label?: string;
-  description?: string;
-  createdAt?: unknown;
-}
-
-/**
- * Manages user-defined custom slash commands stored in Firestore at
- * users/{uid}/commands/{slug}.
- */
+/** User-defined slash commands, stored server-side per account. */
 export function useCustomCommands() {
-  const [commands, setCommands] = useState<SlashCommand[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const ref = collection(db, 'users', user.uid, 'commands');
-    const unsub = onSnapshot(
-      ref,
-      (snap) => {
-        const items: SlashCommand[] = snap.docs.map((d) => {
-          const data = d.data() as FirestoreCommand;
-          return {
-            name: d.id,
-            label: data.label || data.name,
-            description: data.description || data.prompt.slice(0, 80),
-            prompt: data.prompt,
-            category: 'custom',
-            builtin: false,
-          };
-        });
-        setCommands(items);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Failed to load custom commands:', err);
-        setLoading(false);
-      }
-    );
-    return unsub;
-  }, []);
-
-  const saveCommand = useCallback(
-    async (name: string, prompt: string, label?: string, description?: string) => {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not authenticated');
-      const ref = doc(db, 'users', user.uid, 'commands', name);
-      await setDoc(ref, {
-        name,
-        prompt,
-        label: label || name,
-        description: description || prompt.slice(0, 80),
-        createdAt: serverTimestamp(),
-      });
-    },
-    []
+  const { user } = useAuth();
+  const { data, loading, refresh } = useResource(
+    () => commandsApi.list(),
+    [user?.id],
+    { enabled: !!user },
   );
 
-  const deleteCommand = useCallback(async (name: string) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
-    await deleteDoc(doc(db, 'users', user.uid, 'commands', name));
-  }, []);
+  const commands: SlashCommand[] = (data ?? []).map((c) => ({
+    name: c.name,
+    label: c.name,
+    description: c.description || c.prompt.slice(0, 80),
+    prompt: c.prompt,
+    category: 'custom',
+    builtin: false,
+  }));
+
+  const saveCommand = useCallback(
+    async (name: string, prompt: string, _label?: string, description?: string) => {
+      await commandsApi.save({
+        name,
+        prompt,
+        ...(description ? { description } : {}),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteCommand = useCallback(
+    async (name: string) => {
+      await commandsApi.remove(name);
+      await refresh();
+    },
+    [refresh],
+  );
 
   return { commands, loading, saveCommand, deleteCommand };
 }

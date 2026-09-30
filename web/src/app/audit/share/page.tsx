@@ -1,5 +1,6 @@
 'use client';
 
+import { audit as auditApi } from '@/lib/api';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ShieldCheck, ShieldAlert, Loader2, AlertCircle, Hash } from 'lucide-react';
@@ -7,16 +8,16 @@ import { ShieldCheck, ShieldAlert, Loader2, AlertCircle, Hash } from 'lucide-rea
 interface AuditEntry {
   id: string;
   action: string;
-  status: 'success' | 'error';
-  timestamp: number | null;
+  status: string;
+  /** ISO-8601 from the API (Firestore sent epoch millis). */
+  timestamp: string | null;
   previousChainHash: string | null;
   chainHash: string;
-  resultHash: string;
+  resultHash: string | null;
 }
 
 interface AuditResponse {
   memoryId: string;
-  tenantId: string;
   chainOk: boolean;
   entryCount: number;
   entries: AuditEntry[];
@@ -36,23 +37,25 @@ function AuditSharePageInner() {
       return;
     }
 
-    const projectId =
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? 'noomachy';
-    const region = 'us-central1';
-    const url = `https://${region}-${projectId}.cloudfunctions.net/auditShare?token=${encodeURIComponent(
-      token,
-    )}`;
-
-    fetch(url)
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `HTTP ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((json: AuditResponse) => {
-        setData(json);
+    // Public endpoint: the token is the only credential, so no session is
+    // sent. Verification runs server-side against the stored hashes.
+    auditApi
+      .viewShared(token)
+      .then((res) => {
+        setData({
+          memoryId: res.chainKey,
+          chainOk: res.verification.valid,
+          entryCount: res.verification.entries,
+          entries: res.entries.map((e) => ({
+            id: e.id,
+            action: e.action,
+            status: (e.payload?.status as string) ?? 'recorded',
+            timestamp: e.createdAt,
+            previousChainHash: e.prevHash,
+            chainHash: e.entryHash,
+            resultHash: (e.payload?.resultHash as string) ?? null,
+          })) as AuditEntry[],
+        });
         setLoading(false);
       })
       .catch((err: Error) => {

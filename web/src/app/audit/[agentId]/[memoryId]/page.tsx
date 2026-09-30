@@ -2,9 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db } from '@/lib/firebase';
+import { audit as auditApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import {
   ArrowLeft,
@@ -22,7 +20,7 @@ interface AuditEntry {
   id: string;
   action: string;
   status: 'success' | 'error';
-  timestamp: Timestamp | null;
+  timestamp: string | null;
   previousChainHash: string | null;
   chainHash: string;
   resultHash: string;
@@ -51,43 +49,28 @@ export default function AuthedAuditTrailPage({
       return;
     }
 
-    const q = query(
-      collection(db, 'auditLogs'),
-      where('userId', '==', user.uid),
-      where('memoryId', '==', memoryId),
-      orderBy('timestamp', 'asc'),
-      limit(500),
-    );
-
     (async () => {
       try {
-        const snap = await getDocs(q);
-        const items: AuditEntry[] = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            action: data.action,
-            status: data.status,
-            timestamp: data.timestamp ?? null,
-            previousChainHash: data.previousChainHash ?? null,
-            chainHash: data.chainHash,
-            resultHash: data.resultHash,
-          };
-        });
-        setEntries(items);
+        // The chain is keyed by memory id; verification now runs server-side
+        // against the stored hashes rather than being recomputed in the
+        // browser from fields the browser also fetched.
+        const [{ entries: rows }, verification] = await Promise.all([
+          auditApi.chain(memoryId),
+          auditApi.verify(memoryId),
+        ]);
 
-        // Verify chain integrity locally using the Web Crypto API
-        let ok = true;
-        for (let i = 0; i < items.length; i++) {
-          const e = items[i];
-          const prev = i === 0 ? null : items[i - 1].chainHash;
-          const expected = await sha256Hex((prev ?? '') + ':' + (e.resultHash ?? ''));
-          if (e.chainHash !== expected) {
-            ok = false;
-            break;
-          }
-        }
-        setChainOk(ok);
+        setEntries(
+          rows.map((r) => ({
+            id: r.id,
+            action: r.action,
+            status: (r.payload?.status as string) ?? 'recorded',
+            timestamp: r.createdAt,
+            previousChainHash: r.prevHash,
+            chainHash: r.entryHash,
+            resultHash: (r.payload?.resultHash as string) ?? null,
+          })) as AuditEntry[],
+        );
+        setChainOk(verification.valid);
         setLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -102,13 +85,8 @@ export default function AuthedAuditTrailPage({
   const handleShare = async () => {
     setSharing(true);
     try {
-      const functions = getFunctions(undefined, 'us-central1');
-      const mintFn = httpsCallable<
-        { agentId: string; memoryId: string; ttlDays?: number },
-        { token: string; expiresAt: number }
-      >(functions, 'mintAuditShareToken');
-      const res = await mintFn({ agentId, memoryId, ttlDays: 7 });
-      const url = `${window.location.origin}/audit/share?token=${encodeURIComponent(res.data.token)}`;
+      const res = await auditApi.share(memoryId, 7);
+      const url = `${window.location.origin}/audit/share?token=${encodeURIComponent(res.token)}`;
       setShareUrl(url);
       try {
         await navigator.clipboard.writeText(url);
@@ -252,7 +230,7 @@ export default function AuthedAuditTrailPage({
                 </div>
                 {entry.timestamp && (
                   <span className="text-xs text-zinc-500">
-                    {entry.timestamp.toDate().toUTCString()}
+                    {new Date(entry.timestamp).toUTCString()}
                   </span>
                 )}
               </div>

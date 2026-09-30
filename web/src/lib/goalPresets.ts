@@ -5,7 +5,7 @@
  * Clicking a preset in the UI prefills the create form — the user can
  * still tweak title, schedule, and prompt before submitting.
  *
- * `needsDesktop: true` means the preset relies on the Noomachy macOS
+ * `needsDesktop: true` means the preset relies on the SafeMemo AI macOS
  * desktop app being open (Apple Mail / Notes / Calendar / Reminders / Files).
  */
 

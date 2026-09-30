@@ -10,8 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Noomachy - AI Agent Platform',
-  description: 'AI agents with sovereign memory. Build intelligent agents that learn, remember, and use tools autonomously.',
+  metadataBase: new URL('https://noomachy.com'),
+  title: 'SafeMemo AI — Auditable memory for legal AI agents',
+  description: 'Memory your AI can defend in a deposition. Human-validated facts, SHA-256 hash-chained audit trails, and signed share links for outside counsel.',
   icons: {
     icon: [
       { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
@@ -20,17 +21,17 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   openGraph: {
-    title: 'Noomachy - AI Agent Platform',
-    description: 'AI agents with sovereign memory. Build intelligent agents that learn, remember, and use tools autonomously.',
+    title: 'SafeMemo AI — Auditable memory for legal AI agents',
+    description: 'Memory your AI can defend in a deposition. Human-validated facts, SHA-256 hash-chained audit trails, and signed share links for outside counsel.',
     url: 'https://noomachy.com',
-    siteName: 'Noomachy',
+    siteName: 'SafeMemo AI',
     images: [{ url: '/og-image.png', width: 659, height: 659 }],
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Noomachy - AI Agent Platform',
-    description: 'AI agents with sovereign memory.',
+    title: 'SafeMemo AI — Auditable memory for legal AI agents',
+    description: 'Memory your AI can defend in a deposition. Built for legal teams.',
     images: ['/og-image.png'],
   },
 };

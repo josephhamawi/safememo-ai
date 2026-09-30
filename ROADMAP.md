@@ -1,4 +1,4 @@
-# Noomachy roadmap
+# SafeMemo AI roadmap
 
 This is a living document. Edit when something ships, when something is no
 longer blocked, or when a customer conversation reshapes priorities.

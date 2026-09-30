@@ -1,0 +1,50 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-safememo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-safememo}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-safememo} -d ${POSTGRES_DB:-safememo}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Not published to the host by default. The API reaches it over the compose
+    # network; exposing 5432 publicly is the most common self-host mistake.
+    expose:
+      - '5432'
+
+  api:
+    build:
+      context: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-safememo}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-safememo}
+      # 32 bytes, base64. Generate with: openssl rand -base64 32
+      # Losing this makes every stored provider credential unrecoverable.
+      MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:?MASTER_ENCRYPTION_KEY is required}
+      MASTER_ENCRYPTION_KEY_ID: ${MASTER_ENCRYPTION_KEY_ID:-k1}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      AUDIT_SHARE_SECRET: ${AUDIT_SHARE_SECRET:?AUDIT_SHARE_SECRET is required}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      HF_HOME: /app/.cache/huggingface
+    volumes:
+      # Persists the embedding model across rebuilds; without it every
+      # `docker compose up --build` re-downloads ~110 MB.
+      - model-cache:/app/.cache/huggingface
+    ports:
+      - '${API_PORT:-8080}:8080'
+
+volumes:
+  db-data:
+  model-cache:

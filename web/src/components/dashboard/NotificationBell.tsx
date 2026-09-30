@@ -1,17 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  doc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { notifications as notificationsApi } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import { useResource } from '@/hooks/useResource';
 import { useAppStore } from '@/store';
 import {
   Bell,
@@ -58,40 +50,34 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
   const setRightPanelTab = useAppStore((s) => s.setRightPanelTab);
   const setRightPanelOpen = useAppStore((s) => s.setRightPanelOpen);
 
-  // Real-time listener on notifications
+  // Firestore pushed these over a live socket. A REST API cannot, so the
+  // bell polls while the tab is visible — 30s is frequent enough for a
+  // notification badge without generating idle traffic.
+  const { data, refresh } = useResource(
+    () => notificationsApi.list(),
+    [user?.id],
+    { enabled: !!user, refreshMs: 30_000 },
+  );
+
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const ref = collection(db, 'notifications', user.uid, 'items');
-    const q = query(ref, orderBy('createdAt', 'desc'), limit(30));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const items = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as (Notification & { id: string })[];
-
-        setNotifications(items);
-        setUnreadCount(items.filter((n) => !n.read).length);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Notification listener error:', err);
-        setLoading(false);
-      }
+    if (!data) return;
+    // The API's `kind` carries what the UI reads as `type`.
+    setNotifications(
+      data.notifications.map((n) => ({ ...n, type: n.kind })) as unknown as (Notification & {
+        id: string;
+      })[],
     );
+    setUnreadCount(data.unreadCount);
+    setLoading(false);
+  }, [data]);
 
-    return unsubscribe;
-  }, []);
+  useEffect(() => {
+    if (!user) setLoading(false);
+  }, [user]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -105,13 +91,16 @@ export default function NotificationBell() {
   }, []);
 
   const markAsRead = async (notificationId: string) => {
-    const user = auth.currentUser;
-    if (!user) return;
+    // Update locally first so the badge responds immediately, then reconcile.
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
     try {
-      const ref = doc(db, 'notifications', user.uid, 'items', notificationId);
-      await updateDoc(ref, { read: true });
+      await notificationsApi.markRead(notificationId);
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
+      await refresh();
     }
   };
 
@@ -126,16 +115,14 @@ export default function NotificationBell() {
   };
 
   const markAllAsRead = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-    const unread = notifications.filter((n) => !n.read);
-    await Promise.all(
-      unread.map((n) =>
-        updateDoc(doc(db, 'notifications', user.uid, 'items', n.id), { read: true }).catch(
-          () => {}
-        )
-      )
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    try {
+      await notificationsApi.markAllRead();
+    } catch (err) {
+      console.error('Failed to mark notifications as read:', err);
+      await refresh();
+    }
   };
 
   return (
@@ -190,8 +177,9 @@ export default function NotificationBell() {
               </div>
             ) : (
               notifications.map((notification) => {
-                const Icon = TYPE_ICONS[notification.type] || Info;
-                const color = TYPE_COLORS[notification.type] || 'text-zinc-400';
+                const kind = notification.type ?? notification.kind;
+                const Icon = TYPE_ICONS[kind] || Info;
+                const color = TYPE_COLORS[kind] || 'text-zinc-400';
 
                 return (
                   <button
@@ -220,8 +208,8 @@ export default function NotificationBell() {
                       </p>
                       <div className="mt-1 flex items-center gap-2">
                         <time className="text-xs text-zinc-600">
-                          {notification.createdAt?.toDate?.()
-                            ? formatNotificationTime(notification.createdAt.toDate())
+                          {notification.createdAt
+                            ? formatNotificationTime(new Date(notification.createdAt))
                             : ''}
                         </time>
                         {notification.type === 'memory_validation' && (

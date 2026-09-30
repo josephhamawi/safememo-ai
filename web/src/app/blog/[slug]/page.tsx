@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const url = `https://noomachy.com/blog/${post.slug}`;
 
   return {
-    title: `${post.title} — Noomachy`,
+    title: `${post.title} — SafeMemo AI`,
     description: post.description,
     keywords: post.tags,
     authors: [{ name: post.author }],
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: post.title,
       description: post.description,
       url,
-      siteName: 'Noomachy',
+      siteName: 'SafeMemo AI',
       type: 'article',
       publishedTime: post.date,
       authors: [post.author],
@@ -68,7 +68,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     author: { '@type': 'Organization', name: post.author },
     publisher: {
       '@type': 'Organization',
-      name: 'Noomachy',
+      name: 'SafeMemo AI',
       logo: { '@type': 'ImageObject', url: 'https://noomachy.com/icon.png' },
     },
     image: 'https://noomachy.com/og-image.png',
@@ -93,7 +93,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">Noomachy</span>
+            <span className="text-lg font-bold">SafeMemo AI</span>
           </Link>
           <div className="hidden items-center gap-8 md:flex">
             <Link href="/#how" className="text-sm text-zinc-400 hover:text-zinc-200">How it works</Link>
@@ -108,7 +108,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               href="/#early-access"
               className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-medium text-white"
             >
-              Get a demo
+              Request early access
             </Link>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* CTA */}
         <div className="mt-12 rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-8 text-center">
-          <h3 className="mb-2 text-xl font-bold">Ready to try Noomachy?</h3>
+          <h3 className="mb-2 text-xl font-bold">Ready to try SafeMemo AI?</h3>
           <p className="mb-6 text-zinc-400">
             Tamper-evident, human-validated agent memory for legal and compliance teams.
           </p>
@@ -206,10 +206,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-zinc-500">
             <Bot className="h-4 w-4" />
-            Noomachy
+            SafeMemo AI
           </div>
           <p className="text-xs text-zinc-600">
-            &copy; {new Date().getFullYear()} Noomachy. All rights reserved.
+            &copy; {new Date().getFullYear()} SafeMemo AI. All rights reserved.
           </p>
         </div>
       </footer>

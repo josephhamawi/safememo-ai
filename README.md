@@ -1,170 +1,228 @@
-# Noomachy
+# SafeMemo AI
 
-**Tamper-proof memory for compliance-bound AI agents.**
+**Auditable memory for AI agents. Self-hosted, bring your own model key.**
 
-Noomachy is the only agent memory layer with human-in-the-loop fact validation,
-SHA-256 hash-chained audit trails, and tenant isolation by default. Built for
-legal, healthcare, and finance teams who need every fact their AI agents recall
-to be defensible after the fact.
+Most agent memory is a vector database with no provenance: a fact goes in, and
+later it comes out, and nobody can say who approved it or when. SafeMemo AI
+puts a human validation gate in front of long-term memory and records every
+decision in a SHA-256 hash chain, so "where did the AI get that?" has an
+answer you can hand to an auditor.
 
-## What's different
+Everything runs on your own infrastructure. There is no hosted service, no
+shared model key, and no vendor holding your data.
 
-Most agent memory layers passively extract facts and write them straight to
-storage. When an auditor asks "where did this claim come from," there's no
-chain to follow.
+![Landing page](docs/screenshots/landing.png)
 
-Noomachy works differently:
+---
 
-1. **Validation gate.** No memory reaches long-term storage without passing
-   through a staging queue. Cosine-similarity dedup, contradiction detection,
-   and plain-English explanations let a human approve or reject each fact.
-2. **Hash-chained audit log.** Every approval, rejection, and tool call is
-   sealed with SHA-256 and linked to its predecessor. Modifying any earlier
-   entry invalidates every later hash. Verification is one click.
-3. **Per-tenant cost guardrail.** A daily USD cap (default $5) shuts off
-   expensive operations before they become a Firebase bill. Override per
-   tenant when needed.
-4. **Signed share links for auditors.** "Share audit trail" mints a 7-day
-   HMAC-signed URL that exposes a single memory's lineage to outside counsel
-   without provisioning accounts.
-
-## Architecture
+## How it works
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                Next.js dashboard                        │
-│  Memory explorer · Validation queue · Audit trail UI    │
-└─────────────────────┬───────────────────────────────────┘
-                      │ Firestore real-time sync
-┌─────────────────────┴───────────────────────────────────┐
-│           Cloud Functions (Gen 2, Node 20)              │
-│  agentRouter   validationGate   auditShare/mintToken    │
-│  budgetGuard   memoryManager    auditLogger (chain)     │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-┌─────────────────────┴───────────────────────────────────┐
-│                Data layer                                │
-│  Firestore (multi-tenant, isolated by ownerId)          │
-│  Vertex AI textembedding-gecko (768-dim, capped input)  │
-│  auditLogs (append-only, hash-chained per memoryId)     │
-└─────────────────────────────────────────────────────────┘
+  agent proposes a fact
+          │
+          ▼
+  ┌───────────────────┐     staged, not yet real
+  │  staging_memories │────────────────────────────┐
+  └───────────────────┘                            │
+          │                                        │
+          │  validation gate: vector dedup,        │
+          │  contradiction check, confidence       │
+          ▼                                        │
+  ┌───────────────────┐                            │
+  │  human approves   │                            │
+  │  or rejects       │                            │
+  └───────────────────┘                            │
+          │                                        │
+          ▼                                        ▼
+  ┌───────────────────┐              ┌────────────────────────┐
+  │ semantic_memories │              │  audit_logs            │
+  │ (agent can read)  │              │  SHA-256 hash chain,   │
+  └───────────────────┘              │  append-only by        │
+                                     │  database trigger      │
+                                     └────────────────────────┘
 ```
 
-## Three-layer memory
+Three layers of memory, following the usual cognitive split:
 
-| Layer | Name | Purpose | TTL |
-|-------|------|---------|-----|
-| L1 | Working memory | Active session context, last 20 messages | 24 hours |
-| L2 | Semantic memory | Validated long-term facts. Goes through the gate. | Permanent (or one-click purge) |
-| L3 | Episodic memory | Append-only decision log. Append-only. | Permanent |
+| Layer | Table | What it holds |
+|---|---|---|
+| L1 working | `messages` | Recent turns, replayed into the prompt for continuity |
+| L2 semantic | `semantic_memories` | Durable facts — **only reachable through the validation gate** |
+| L3 episodic | `episodic_memories` | One record per completed agent run |
 
-## Trust posture
+The chain is the point. Each audit entry hashes the previous entry's hash
+together with a canonical encoding of its own contents, so editing any earlier
+row invalidates every hash after it. `UPDATE` and `DELETE` on `audit_logs` are
+blocked by a database trigger, not by convention.
 
-Noomachy ships the technical controls compliance teams ask for. We are not
-yet certified — certification depends on your specific deployment. The
-substrate is here; your auditor signs off.
+---
 
-- **Tamper-evident audit log** — SHA-256 chained per memoryId.
-- **Tenant-isolated, encrypted at rest** — Firestore security rules enforce
-  cross-tenant blocks; encryption at rest is on by default.
-- **Right-to-erasure** — TTL on working memory, manual purge on semantic
-  memory, every deletion recorded in the audit chain.
+## Bring your own key
 
-## Cost guardrails
+SafeMemo AI ships with **no model API key**. Each user supplies their own
+Anthropic, Google, or OpenAI key after signing up, and is billed by that
+provider directly.
 
-Each tenant has a per-day USD cap. Default is `$5/day`, set in
-`functions/src/cost/budgetGuard.ts:MAX_DAILY_COST_USD`. Per-tenant overrides
-live in `users/{tenantId}.dailyCapOverrideUSD`.
+![Sign in](docs/screenshots/login.png)
 
-When a tenant approaches 80% of cap, every LLM/embedding call logs a warning.
-At 100%, the next request fails closed with HTTP 429 and a clear error message.
-The cap resets at 00:00 UTC.
+Keys are protected with envelope encryption:
 
-See `COST.md` for the cost model and tuning guide.
+```
+plaintext API key  ──sealed under──▶  DEK  (random, one per credential)
+DEK                ──sealed under──▶  MASTER_ENCRYPTION_KEY (env only)
+```
+
+Both layers are AES-256-GCM. The additional authenticated data binds each
+ciphertext to `(credentialId, userId, provider)`, so a credential row copied
+into another user's record fails the authentication tag rather than
+decrypting — a database-write bug cannot become "spend someone else's quota".
+
+Other properties worth knowing:
+
+- **There is no endpoint that reads a key back.** Not for the user, not for an
+  administrator. Only the last four characters are ever displayed.
+- **Keys are verified before storage.** Saving one makes a live call to the
+  provider, so an unusable key never reaches the database.
+- **Rotation is cheap.** Only the wrapped DEK is rewritten, never the API-key
+  ciphertext, and `npm run rotate-master-key` is resumable.
+- Decryption failures return a uniform error; the specific cause goes to the
+  server log only, so there is no oracle to probe.
+
+---
 
 ## Tech stack
 
-- **Frontend** Next.js 16, React 19, TypeScript, Tailwind
-- **Backend** Firebase Cloud Functions Gen 2, Node 20
-- **Database** Firestore (Native mode), append-only audit collection
-- **Vector search** Vertex AI textembedding-gecko@003 (768-dim)
-- **LLM** Anthropic Claude (primary), Google Gemini (cost-tier fallback)
-- **Auth** Firebase Authentication
+| Layer | Choice | Why |
+|---|---|---|
+| API | Node 20, Express, TypeScript (strict) | Small surface, no framework lock-in |
+| Database | PostgreSQL 16 + [pgvector](https://github.com/pgvector/pgvector) | Relational data and vector search in one place; no separate vector DB to operate |
+| Vector index | HNSW, cosine distance, 768 dimensions | Matches both the local model and Gemini's `text-embedding-004` |
+| Embeddings | ONNX `bge-base-en-v1.5` in-process (default) | No API key, no per-call cost, and memory content never leaves the machine |
+| Auth | Argon2id passwords, opaque session cookies | Only the SHA-256 of a session token is stored, so a database dump yields no replayable sessions |
+| Encryption | AES-256-GCM envelope, Node `crypto` | No third-party crypto dependency |
+| Frontend | Next.js 16 (App Router), React 19, Tailwind 4 | — |
+| Streaming | Server-Sent Events | Tokens arrive on the same request that sent the message |
+| Agent loop | `@anthropic-ai/sdk`, tool use | One streamed call per turn |
+| Packaging | Docker Compose | `docker compose up` and you have the whole system |
 
-## Setup
+**No Firebase, no Google Cloud, no managed services.** The only outbound calls
+are to the AI provider whose key the user supplied.
+
+---
+
+## Quick start
+
+Requirements: Docker, and an API key from
+[Anthropic](https://console.anthropic.com/settings/keys),
+[Google](https://aistudio.google.com/apikey), or
+[OpenAI](https://platform.openai.com/api-keys).
 
 ```bash
-# Install
-cd functions && npm install && cd ..
-cd web && npm install && cd ..
-
-# Configure
+git clone https://github.com/josephhamawi/safememo-ai.git
+cd safememo-ai
 cp .env.example .env
-cp functions/.env.example functions/.env
-
-# Set required secrets
-firebase functions:secrets:set ANTHROPIC_API_KEY
-firebase functions:secrets:set GEMINI_API_KEY
-firebase functions:secrets:set AUDIT_SHARE_SECRET   # any high-entropy 32+ byte string
-firebase functions:secrets:set MCP_SERVER_SECRET
-firebase functions:secrets:set SERPER_API_KEY
 ```
 
-## Local dev
+Fill in the four required secrets:
 
 ```bash
-./scripts/emulator.sh                   # Firebase emulators
-cd web && npm run dev                   # Next.js
-cd seed && npx ts-node legal-demo.ts    # Seed legal contract review demo
+# Back MASTER_ENCRYPTION_KEY up somewhere other than this server. Losing it
+# makes every stored provider credential permanently unreadable.
+openssl rand -base64 32   # → MASTER_ENCRYPTION_KEY
+openssl rand -hex 32      # → SESSION_SECRET
+openssl rand -hex 48      # → AUDIT_SHARE_SECRET
+                          # → POSTGRES_PASSWORD (anything strong)
 ```
 
-## Deploy
+Then:
 
 ```bash
-./scripts/deploy.sh all
-# or selectively:
-./scripts/deploy.sh functions
-./scripts/deploy.sh hosting
-./scripts/deploy.sh rules
-./scripts/deploy.sh indexes
+docker compose up -d db
+cd server && npm install && npm run migrate
+docker compose up -d
+
+cd ../web && npm install && npm run dev
 ```
+
+Open <http://localhost:3000>, create an account, and the app takes you
+straight to key setup — nothing works until a provider key is connected,
+which is deliberate.
+
+### Configuration
+
+Every value is documented in [`.env.example`](.env.example). The ones that
+change behaviour most:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `EMBEDDING_PROVIDER` | `local` | `local`, `google` (BYOK), or `none` |
+| `SIGNUP_MODE` | `open` | `open`, `invite`, or `closed` |
+| `DAILY_REQUEST_LIMIT` | `2000` | Guards this server's resources, **not** spend — under BYOK the user is billed by their provider |
+| `APP_ORIGIN` | `http://localhost:3000` | Exact origin, no wildcards |
+
+> **Intel Mac note:** `onnxruntime-node` ships no `darwin/x64` binary, so the
+> local embedding backend cannot load there. It degrades to lexical search
+> with a loud log line rather than failing to boot. Run in Docker, or set
+> `EMBEDDING_PROVIDER=google`.
+
+---
+
+## Data ownership
+
+![Privacy](docs/screenshots/privacy.png)
+
+- **Export.** `GET /memories/export` returns every memory as JSON.
+- **Erasure.** Purging a memory clears its content and drops its embedding,
+  while the audit chain keeps the record *that a deletion happened* — erasing
+  the content without erasing the evidence of the erasure.
+- **Share.** A signed, expiring link lets an auditor verify one memory's chain
+  without an account. Links are HMAC-signed *and* row-backed, so a single link
+  can be revoked without invalidating everyone else's.
+
+---
 
 ## Project layout
 
 ```
-noomachy/
-├── functions/src/
-│   ├── agents/          # router, orchestrator, mcpExecutor
-│   ├── audit/           # share endpoint, mintToken (signed links)
-│   ├── cost/            # budgetGuard.ts (per-tenant daily cap)
-│   ├── mcp/             # MCP server + built-in tools
-│   ├── memory/          # memoryManager, validationGate, vectorSearch
-│   ├── security/        # auditLogger (hash-chained)
-│   └── triggers.ts      # Firestore triggers for staging → semantic
-├── web/src/
-│   ├── app/
-│   │   ├── audit/share/                      # public signed-link viewer
-│   │   ├── audit/[agentId]/[memoryId]/       # owner audit trail
-│   │   ├── dashboard/memory/                 # memory explorer
-│   │   ├── dashboard/validation/             # validation queue page
-│   │   └── page.tsx                          # landing (legal vertical)
-│   └── components/
-│       ├── memory/      # MemoryExplorer, MemoryGraph, ValidationQueue
-│       └── ...
-├── seed/                # demo data (legal contract review)
-├── ROADMAP.md           # what's shipped / blocked-on-validation / next
-└── COST.md              # Firebase bill model + tuning guide
+server/                 API, agent loop, crypto, migrations
+  src/crypto/           envelope encryption + master-key rotation
+  src/agents/           tool-use loop, memory context, tools
+  src/embeddings/       local ONNX and BYOK Gemini backends
+  src/routes/           HTTP surface
+  src/db/migrations/    forward-only SQL
+web/                    Next.js frontend
+desktop-app/            Electron wrapper (optional)
+desktop-mcp/            local MCP server for Mac apps (optional)
+docs/screenshots/       images used by this README
 ```
 
-## Tests
-
-Audit log integrity is unit-tested. Other surfaces are validated manually until
-we have paying customers.
+## Development
 
 ```bash
-cd functions && npm test
+cd server
+npm test           # unit tests; integration tests skip without a database
+npm run typecheck
+
+# Integration suite — needs a real Postgres with pgvector
+docker compose up -d db
+TEST_DATABASE_URL=postgres://safememo:<password>@localhost:5432/safememo npm test
 ```
+
+---
+
+## Status
+
+Early and honest about it:
+
+- The agent loop currently supports **Anthropic only**. Google and OpenAI keys
+  store and verify correctly, but `runAgent` will refuse them.
+- Custom MCP server registration is not yet in the self-hosted backend, so the
+  desktop app's auto-registration is a documented no-op.
+- Conversation deletion has no endpoint yet.
+
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Security
+reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-Proprietary. All rights reserved.
+[AGPL-3.0](LICENSE).

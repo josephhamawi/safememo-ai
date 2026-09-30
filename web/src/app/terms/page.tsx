@@ -1,30 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Bot, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Bot, Scale } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Noomachy',
+  title: 'Terms — SafeMemo AI',
   description:
-    'The terms and conditions governing your use of the Noomachy AI agent platform.',
-  alternates: { canonical: 'https://noomachy.com/terms' },
+    'SafeMemo AI is AGPL-3.0 open-source software. The software is covered by its licence; use of this instance is governed by whoever operates it.',
   openGraph: {
-    title: 'Terms of Service — Noomachy',
-    description: 'The terms and conditions governing your use of Noomachy.',
-    url: 'https://noomachy.com/terms',
+    title: 'Terms — SafeMemo AI',
+    description:
+      'AGPL-3.0 open-source software. Licence terms, and what the operator of this instance is responsible for.',
   },
 };
 
+/**
+ * Terms page for a self-hosted, open-source deployment.
+ *
+ * The previous version was a SaaS terms-of-service: account rules, plan
+ * tiers, a governing-law clause. None of that applies to software the project
+ * gives away and does not operate. What replaces it is the licence that
+ * actually governs the code, plus a clear statement that the operator of this
+ * instance — not the authors — sets the terms of using it.
+ */
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-100">
-      {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-zinc-800/50 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">Noomachy</span>
+            <span className="text-lg font-bold">SafeMemo AI</span>
           </Link>
           <Link href="/auth/login" className="text-sm text-zinc-400 hover:text-zinc-200">
             Sign In
@@ -41,163 +48,145 @@ export default function TermsPage() {
           Back to sign in
         </Link>
 
-        <h1 className="mb-4 text-4xl font-bold">Terms of Service</h1>
-        <p className="mb-12 text-sm text-zinc-500">Last updated: April 11, 2026</p>
+        <h1 className="mb-4 text-4xl font-bold">Terms</h1>
+        <p className="mb-8 text-sm text-zinc-500">
+          Covering the software. Use of this instance is governed by its operator.
+        </p>
 
-        <div className="space-y-8 text-zinc-300 leading-relaxed">
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">1. Acceptance of Terms</h2>
+        <div className="mb-10 rounded-xl border border-orange-500/20 bg-orange-500/5 p-5">
+          <div className="flex items-start gap-3">
+            <Scale className="mt-0.5 h-5 w-5 shrink-0 text-orange-400" />
+            <div className="space-y-2 text-sm leading-relaxed text-zinc-300">
+              <p className="font-semibold text-zinc-100">
+                Two different agreements are at work here.
+              </p>
+              <p>
+                The <strong className="text-zinc-200">software</strong> is
+                licensed to you under the GNU AGPL v3. That licence, and nothing
+                on this page, is what governs the code. Your{' '}
+                <strong className="text-zinc-200">use of this particular
+                installation</strong> is a matter between you and whoever runs
+                it — the project authors are not party to it.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-10 text-sm leading-relaxed text-zinc-300">
+          <Section title="Licence">
             <p>
-              By creating an account or using Noomachy (the &ldquo;Service&rdquo;), you agree to be
-              bound by these Terms of Service and our{' '}
-              <Link href="/privacy" className="text-orange-400 underline underline-offset-2">
-                Privacy Policy
-              </Link>
-              . If you do not agree, do not use the Service.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">2. Description of Service</h2>
-            <p>
-              Noomachy is an AI agent platform that lets users create personal AI assistants
-              with sovereign memory, tool use, and multi-channel deployment. The Service is
-              provided on an &ldquo;as-is&rdquo; basis and may evolve over time.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">3. Account Eligibility</h2>
-            <p>
-              You must be at least 13 years old to use Noomachy. By creating an account, you
-              represent that you meet this age requirement and that the information you provide
-              is accurate and complete.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">4. Acceptable Use</h2>
-            <p>You agree NOT to use the Service to:</p>
-            <ul className="ml-6 mt-2 list-disc space-y-2">
-              <li>Generate or distribute illegal, harmful, or hateful content</li>
-              <li>Attempt to bypass security measures or rate limits</li>
-              <li>Reverse engineer, decompile, or disassemble the Service</li>
-              <li>Use the Service to spam, phish, or distribute malware</li>
-              <li>Train competing AI models on Service outputs</li>
-              <li>Impersonate others or misrepresent your identity</li>
-              <li>Violate any applicable laws or third-party rights</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">5. User Content and Data</h2>
-            <p>
-              You retain ownership of all content you create or upload (&ldquo;User
-              Content&rdquo;). By using the Service, you grant Noomachy a limited license to
-              process your User Content solely for the purpose of providing the Service to you.
-            </p>
-            <p className="mt-3">
-              We do <strong>not</strong> use your conversations, memories, or other User
-              Content to train AI models, and we do <strong>not</strong> share your User
-              Content with third parties except as required to deliver the Service (e.g.,
-              sending prompts to AI model providers like Anthropic and Google).
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">6. AI-Generated Content</h2>
-            <p>
-              The Service uses third-party AI models to generate responses. AI outputs may be
-              inaccurate, outdated, or biased. You are responsible for verifying the accuracy
-              of any AI-generated content before relying on it for important decisions.
-            </p>
-            <p className="mt-3">
-              Noomachy makes no warranty regarding the accuracy, reliability, or
-              fitness-for-purpose of AI-generated content.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">7. Plans and Billing</h2>
-            <p>
-              Noomachy offers free and paid plans. Free plans are subject to usage limits.
-              Paid plans are billed monthly or annually in advance. You can cancel at any
-              time, with cancellations taking effect at the end of the current billing cycle.
-              Refunds are evaluated on a case-by-case basis.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">8. Third-Party Services</h2>
-            <p>
-              The Service integrates with third parties including Anthropic (Claude), Google
-              (Gemini, Firebase), and any custom MCP servers you configure. Your use of these
-              integrations is also governed by their respective terms and privacy policies.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">9. Termination</h2>
-            <p>
-              You may delete your account at any time from the Settings page. We may suspend
-              or terminate accounts that violate these Terms, with or without notice. On
-              termination, your data will be deleted within 30 days, except where retention is
-              required by law.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">10. Disclaimers</h2>
-            <p>
-              THE SERVICE IS PROVIDED &ldquo;AS IS&rdquo; AND &ldquo;AS AVAILABLE&rdquo;
-              WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
-              ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
-              NON-INFRINGEMENT. NOOMACHY DOES NOT WARRANT THAT THE SERVICE WILL BE
-              UNINTERRUPTED, ERROR-FREE, OR SECURE.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">11. Limitation of Liability</h2>
-            <p>
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, NOOMACHY AND ITS AFFILIATES SHALL NOT BE
-              LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES
-              ARISING OUT OF YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY FOR ANY CLAIM SHALL
-              NOT EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">12. Changes to These Terms</h2>
-            <p>
-              We may update these Terms from time to time. Material changes will be announced
-              via email or in-app notification. Continued use of the Service after changes
-              take effect constitutes acceptance of the updated Terms.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">13. Governing Law</h2>
-            <p>
-              These Terms are governed by the laws of the jurisdiction where Noomachy is
-              incorporated, without regard to conflict-of-law principles. Disputes shall be
-              resolved in the courts of that jurisdiction.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-2xl font-bold text-zinc-100">14. Contact</h2>
-            <p>
-              Questions about these Terms? Email us at{' '}
+              SafeMemo AI is free software under the{' '}
               <a
-                href="mailto:hello@kodefoundry.com"
-                className="text-orange-400 underline underline-offset-2"
+                href="https://www.gnu.org/licenses/agpl-3.0.html"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-orange-400 hover:text-orange-300"
               >
-                hello@kodefoundry.com
+                GNU Affero General Public License, version 3
               </a>
-              .
+              . You may run it, study it, modify it, and redistribute it.
             </p>
-          </section>
+            <p>
+              The obligation worth knowing about: if you modify the software and
+              make it available to others over a network, the AGPL requires you
+              to offer those users the corresponding source of your modified
+              version. Running an unmodified copy for yourself carries no such
+              duty.
+            </p>
+            <p>
+              The full licence text ships with the source as{' '}
+              <code className="rounded bg-zinc-900 px-1 py-0.5 text-xs text-zinc-300">
+                LICENSE
+              </code>
+              . Where this page and the licence differ, the licence wins.
+            </p>
+          </Section>
+
+          <Section title="No warranty">
+            <p>
+              The software is provided <strong className="text-zinc-200">as
+              is, without warranty of any kind</strong>, as set out in sections
+              15 and 16 of the AGPL. Nobody guarantees it is fit for your
+              purpose, free of defects, or that it will keep running. If it
+              breaks, you keep both pieces.
+            </p>
+            <p>
+              This matters more than usual for a product about audit trails. The
+              hash chain is tamper-<em>evident</em>: it lets you detect that
+              records were altered. It does not prevent alteration by someone
+              with database access, and it is not a certification of anything.
+              Whether this deployment satisfies an obligation you are under is a
+              question for you and your advisers, not for the software.
+            </p>
+          </Section>
+
+          <Section title="Your AI provider">
+            <p>
+              You supply your own API key for Anthropic, Google, or OpenAI. That
+              relationship is directly between you and them: you are bound by
+              their terms, you are billed by them, and their policies govern how
+              they handle the conversation content sent under your key.
+            </p>
+            <p>
+              Neither this software nor its authors are a party to that
+              arrangement, take a cut of it, or can see what you spend.
+            </p>
+          </Section>
+
+          <Section title="What you are responsible for">
+            <ul className="ml-4 list-disc space-y-1.5">
+              <li>Keeping your own account credentials and API key secure.</li>
+              <li>
+                Having the right to put into the system whatever you put into
+                it, including anyone else&apos;s personal or confidential
+                information.
+              </li>
+              <li>
+                Complying with the law that applies to you, and with your AI
+                provider&apos;s acceptable-use terms.
+              </li>
+              <li>
+                Reviewing what the agent proposes. The validation queue exists
+                because the model can be wrong; approving a fact is your
+                judgement, recorded under your name.
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="If you are the operator">
+            <p>
+              Running this instance for other people makes you responsible to
+              them. You control the server, the database, backups, and access.
+              You decide retention, and you answer data-protection requests.
+            </p>
+            <p>
+              Two obligations are easy to overlook.{' '}
+              <strong className="text-zinc-200">
+                Back up MASTER_ENCRYPTION_KEY separately from the database
+              </strong>{' '}
+              — losing it makes every stored credential permanently unreadable,
+              and leaking it alongside a database dump exposes all of them.
+              And if you modify the software for a service others use over a
+              network, the AGPL obliges you to publish your changes.
+            </p>
+          </Section>
+
+          <Section title="Trade marks">
+            <p>
+              The AGPL covers the code, not the name. It does not grant
+              permission to present a modified version as the official SafeMemo
+              AI, or to use the name in a way that suggests endorsement.
+            </p>
+          </Section>
+
+          <Section title="Changes">
+            <p>
+              This page ships with the software and changes when the code
+              changes; the history is public in the repository. An operator may
+              replace it with terms of their own, which would then govern your
+              use of their instance alongside the software licence.
+            </p>
+          </Section>
         </div>
       </article>
 
@@ -205,7 +194,7 @@ export default function TermsPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between text-xs text-zinc-600">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            Noomachy
+            SafeMemo AI
           </div>
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-zinc-400">
@@ -218,5 +207,20 @@ export default function TermsPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+      {children}
+    </section>
   );
 }

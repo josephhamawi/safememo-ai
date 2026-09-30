@@ -1,14 +1,22 @@
 'use client';
 
+import { profile as profileApi } from '@/lib/api';
 import { useAuth } from './useAuth';
-import { useFirestoreDoc } from './useFirestoreCollection';
-import type { UserProfile } from '@/types';
+import { useResource } from './useResource';
 
 export function useUserProfile() {
   const { user } = useAuth();
-  const { data, loading, error } = useFirestoreDoc<UserProfile>(
-    user ? `users/${user.uid}` : '',
-    !!user
+  const { data, loading, error, refresh } = useResource(
+    () => profileApi.get(),
+    [user?.id],
+    { enabled: !!user },
   );
-  return { profile: data, loading, error };
+
+  return {
+    profile: data?.profile ?? null,
+    usage: data?.usage ?? null,
+    loading,
+    error,
+    refresh,
+  };
 }

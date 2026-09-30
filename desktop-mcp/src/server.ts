@@ -70,12 +70,12 @@ app.post('/resources/list', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════╗
-║       Noomachy Desktop MCP Server v1.0.0         ║
+║       SafeMemo AI Desktop MCP Server v1.0.0         ║
 ║══════════════════════════════════════════════════║
 ║  Running on: http://localhost:${PORT}               ║
 ║  API Key:    ${process.env.MCP_API_KEY ? '****' + API_KEY.slice(-4) : 'none (open)'}                        ║
 ║                                                  ║
-║  Register this URL in Noomachy:                  ║
+║  Register this URL in SafeMemo AI:                  ║
 ║  → Dashboard → Skills → Add Custom MCP           ║
 ║  → Endpoint: http://localhost:${PORT}               ║
 ╚══════════════════════════════════════════════════╝

@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { where, orderBy } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirestoreCollection } from '@/hooks/useFirestoreCollection';
+import {
+  audit as auditApi,
+  memories as memoriesApi,
+  type Episode,
+  type Memory,
+} from '@/lib/api';
+import { useResource } from '@/hooks/useResource';
 import { useAppStore } from '@/store';
-import type { SemanticMemory, EpisodicMemory, WorkingMemory } from '@/types';
 import {
   Brain,
   Clock,
@@ -26,12 +29,11 @@ import {
 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
 
-type TabKey = 'semantic' | 'episodic' | 'working';
+type TabKey = 'semantic' | 'episodic';
 
 const TABS: { key: TabKey; label: string; sublabel: string; icon: typeof Brain; help: string }[] = [
   { key: 'semantic', label: 'Semantic', sublabel: 'L2', icon: Brain, help: 'Long-term factual knowledge extracted from conversations. Validated before saving.' },
   { key: 'episodic', label: 'Episodic', sublabel: 'L3', icon: Clock, help: 'Records of past conversations and decisions with outcomes and lessons learned.' },
-  { key: 'working', label: 'Working', sublabel: 'L1', icon: Cpu, help: 'Current session context. Resets after 24 hours of inactivity.' },
 ];
 
 const OUTCOME_COLORS: Record<string, string> = {
@@ -53,50 +55,38 @@ export default function MemoryExplorer() {
 
   // Data fetching
   const {
-    data: semanticMemories,
+    data: semanticData,
     loading: semanticLoading,
     error: semanticError,
-  } = useFirestoreCollection<SemanticMemory>(
-    selectedAgentId ? `agents/${selectedAgentId}/semanticMemory` : '',
-    {
-      constraints: [where('metadata.validationStatus', '==', 'approved')],
-      enabled: !!selectedAgentId && activeTab === 'semantic',
-    }
+    refresh: refreshSemantic,
+  } = useResource(
+    () => memoriesApi.list({ agentId: selectedAgentId!, limit: 200 }),
+    [selectedAgentId, activeTab],
+    { enabled: !!selectedAgentId && activeTab === 'semantic' },
   );
+  const semanticMemories: Memory[] = semanticData ?? [];
 
   const {
-    data: episodicMemories,
+    data: episodicData,
     loading: episodicLoading,
     error: episodicError,
-  } = useFirestoreCollection<EpisodicMemory>(
-    selectedAgentId ? `agents/${selectedAgentId}/episodicMemory` : '',
-    {
-      constraints: [orderBy('createdAt', 'desc')],
-      enabled: !!selectedAgentId && activeTab === 'episodic',
-    }
+  } = useResource(
+    () => memoriesApi.episodic(selectedAgentId!),
+    [selectedAgentId, activeTab],
+    { enabled: !!selectedAgentId && activeTab === 'episodic' },
   );
-
-  const {
-    data: workingMemories,
-    loading: workingLoading,
-    error: workingError,
-  } = useFirestoreCollection<WorkingMemory>(
-    selectedAgentId ? `agents/${selectedAgentId}/workingMemory` : '',
-    {
-      enabled: !!selectedAgentId && activeTab === 'working',
-    }
-  );
+  const episodicMemories: Episode[] = episodicData ?? [];
 
   // Derived values
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    semanticMemories.forEach((m) => m.metadata.tags.forEach((t) => tags.add(t)));
+    semanticMemories.forEach((m) => (m.tags ?? []).forEach((t) => tags.add(t)));
     return Array.from(tags).sort();
   }, [semanticMemories]);
 
   const allDomains = useMemo(() => {
     const domains = new Set<string>();
-    episodicMemories.forEach((m) => domains.add(m.taskDomain));
+    episodicMemories.forEach((m) => (m.detail.stopReason ? domains.add(m.detail.stopReason) : null));
     return Array.from(domains).sort();
   }, [episodicMemories]);
 
@@ -107,11 +97,11 @@ export default function MemoryExplorer() {
       items = items.filter(
         (m) =>
           m.content.toLowerCase().includes(q) ||
-          m.metadata.tags.some((t) => t.toLowerCase().includes(q))
+          (m.tags ?? []).some((t) => t.toLowerCase().includes(q)),
       );
     }
     if (tagFilter) {
-      items = items.filter((m) => m.metadata.tags.includes(tagFilter));
+      items = items.filter((m) => (m.tags ?? []).includes(tagFilter));
     }
     return items;
   }, [semanticMemories, search, tagFilter]);
@@ -120,15 +110,10 @@ export default function MemoryExplorer() {
     let items = episodicMemories;
     if (search) {
       const q = search.toLowerCase();
-      items = items.filter(
-        (m) =>
-          m.sessionSnapshot.summary.toLowerCase().includes(q) ||
-          m.taskDomain.toLowerCase().includes(q) ||
-          m.lessonsLearned.some((l) => l.toLowerCase().includes(q))
-      );
+      items = items.filter((m) => m.summary.toLowerCase().includes(q));
     }
     if (domainFilter) {
-      items = items.filter((m) => m.taskDomain === domainFilter);
+      items = items.filter((m) => m.detail.stopReason === domainFilter);
     }
     return items;
   }, [episodicMemories, search, domainFilter]);
@@ -146,13 +131,8 @@ export default function MemoryExplorer() {
     if (!selectedAgentId) return;
     setSharingId(memoryId);
     try {
-      const functions = getFunctions(undefined, 'us-central1');
-      const mintFn = httpsCallable<
-        { agentId: string; memoryId: string; ttlDays?: number },
-        { token: string; expiresAt: number }
-      >(functions, 'mintAuditShareToken');
-      const res = await mintFn({ agentId: selectedAgentId, memoryId, ttlDays: 7 });
-      const url = `${window.location.origin}/audit/share?token=${encodeURIComponent(res.data.token)}`;
+      const res = await auditApi.share(memoryId, 7);
+      const url = `${window.location.origin}/audit/share?token=${encodeURIComponent(res.token)}`;
       setShareLink({ id: memoryId, url });
       try {
         await navigator.clipboard.writeText(url);
@@ -170,16 +150,8 @@ export default function MemoryExplorer() {
     if (!selectedAgentId) return;
     setDeletingId(memoryId);
     try {
-      const functions = getFunctions(undefined, 'us-central1');
-      const purgeFn = httpsCallable<
-        { agentId: string; memoryId: string; reason?: string },
-        { ok: boolean }
-      >(functions, 'purgeMemory');
-      await purgeFn({
-        agentId: selectedAgentId,
-        memoryId,
-        reason: 'Purged from memory explorer',
-      });
+      await memoriesApi.purge(memoryId);
+      await refreshSemantic();
     } catch (err) {
       console.error('Failed to delete memory:', err);
     } finally {
@@ -195,8 +167,8 @@ export default function MemoryExplorer() {
     );
   }
 
-  const loading = activeTab === 'semantic' ? semanticLoading : activeTab === 'episodic' ? episodicLoading : workingLoading;
-  const error = activeTab === 'semantic' ? semanticError : activeTab === 'episodic' ? episodicError : workingError;
+  const loading = activeTab === 'semantic' ? semanticLoading : episodicLoading;
+  const error = activeTab === 'semantic' ? semanticError : episodicError;
 
   return (
     <div className="flex h-full flex-col bg-zinc-950">
@@ -293,7 +265,7 @@ export default function MemoryExplorer() {
               <EmptyState message="No semantic memories found" />
             ) : (
               <div className="space-y-2">
-                {filteredSemantic.map((memory) => {
+                {filteredSemantic.map((memory: Memory) => {
                   const expanded = expandedIds.has(memory.id);
                   return (
                     <div
@@ -315,11 +287,11 @@ export default function MemoryExplorer() {
                           </p>
                           <div className="mt-2 flex items-center gap-3">
                             <span className="text-xs text-zinc-500 capitalize">
-                              {memory.metadata.source.replace('_', ' ')}
+                              {(memory.source ?? 'agent').replace('_', ' ')}
                             </span>
                             <span className="text-xs text-zinc-600">|</span>
                             <span className="text-xs text-zinc-500">
-                              {Math.round(memory.metadata.confidence * 100)}% confidence
+                              {Math.round((memory.confidence ?? 0) * 100)}% confidence
                             </span>
                           </div>
                         </div>
@@ -328,7 +300,7 @@ export default function MemoryExplorer() {
                       {expanded && (
                         <div className="border-t border-zinc-800 px-10 py-3">
                           <div className="mb-3 flex flex-wrap gap-1.5">
-                            {memory.metadata.tags.map((tag) => (
+                            {(memory.tags ?? []).map((tag: string) => (
                               <span
                                 key={tag}
                                 className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400"
@@ -342,18 +314,21 @@ export default function MemoryExplorer() {
                           <div className="mb-3 grid grid-cols-2 gap-3 text-xs">
                             <div className="flex items-center gap-1.5 text-zinc-500">
                               <Eye className="h-3 w-3" />
-                              Last accessed:{' '}
-                              {memory.metadata.lastAccessed?.toDate?.()
-                                ? memory.metadata.lastAccessed.toDate().toLocaleDateString()
-                                : 'Never'}
+                              Approved:{' '}
+                              {memory.approvedAt
+                                ? new Date(memory.approvedAt).toLocaleDateString()
+                                : 'Pending'}
                             </div>
                             <div className="flex items-center gap-1.5 text-zinc-500">
                               <Hash className="h-3 w-3" />
-                              Access count: {memory.metadata.accessCount}
+                              Created:{' '}
+                              {memory.createdAt
+                                ? new Date(memory.createdAt).toLocaleDateString()
+                                : '—'}
                             </div>
                             <div className="flex items-center gap-1.5 text-zinc-500">
                               <Shield className="h-3 w-3" />
-                              {memory.accessControl.visibility}
+                              private
                             </div>
                           </div>
 
@@ -363,11 +338,11 @@ export default function MemoryExplorer() {
                             <div className="h-1.5 flex-1 rounded-full bg-zinc-800">
                               <div
                                 className="h-full rounded-full bg-blue-500 transition-all"
-                                style={{ width: `${memory.metadata.confidence * 100}%` }}
+                                style={{ width: `${(memory.confidence ?? 0) * 100}%` }}
                               />
                             </div>
                             <span className="text-xs font-medium text-zinc-400">
-                              {Math.round(memory.metadata.confidence * 100)}%
+                              {Math.round((memory.confidence ?? 0) * 100)}%
                             </span>
                           </div>
 
@@ -378,7 +353,7 @@ export default function MemoryExplorer() {
                               </p>
                               <input
                                 readOnly
-                                value={shareLink.url}
+                                value={shareLink?.url ?? ''}
                                 onClick={(e) => (e.target as HTMLInputElement).select()}
                                 className="w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[10px] text-zinc-300 outline-none"
                               />
@@ -441,7 +416,7 @@ export default function MemoryExplorer() {
               <EmptyState message="No episodic memories found" />
             ) : (
               <div className="space-y-2">
-                {filteredEpisodic.map((episode) => {
+                {filteredEpisodic.map((episode: Episode) => {
                   const expanded = expandedIds.has(episode.episodeId);
                   return (
                     <div
@@ -477,8 +452,8 @@ export default function MemoryExplorer() {
                             <span>{Math.round(episode.duration / 1000)}s duration</span>
                             <span>{episode.sessionSnapshot.messageCount} messages</span>
                             <span>
-                              {episode.createdAt?.toDate?.()
-                                ? episode.createdAt.toDate().toLocaleDateString()
+                              {episode.createdAt
+                                ? new Date(episode.createdAt).toLocaleDateString()
                                 : ''}
                             </span>
                           </div>
@@ -525,13 +500,8 @@ export default function MemoryExplorer() {
 
                           <div className="flex items-center gap-3 text-xs text-zinc-500">
                             <span>
-                              Consolidation: {Math.round(episode.consolidationScore * 100)}%
+                              Duration: {(episode.duration / 1000).toFixed(1)}s
                             </span>
-                            {episode.promotedToSemantic && (
-                              <span className="rounded bg-orange-400/10 px-1.5 py-0.5 text-orange-400">
-                                Promoted to Semantic
-                              </span>
-                            )}
                           </div>
                         </div>
                       )}
@@ -543,117 +513,6 @@ export default function MemoryExplorer() {
           </>
         )}
 
-        {!loading && !error && activeTab === 'working' && (
-          <>
-            {workingMemories.length === 0 ? (
-              <EmptyState message="No active working memory sessions" />
-            ) : (
-              <div className="space-y-4">
-                {workingMemories.map((wm) => (
-                  <div
-                    key={wm.sessionId || wm.id}
-                    className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
-                  >
-                    <div className="mb-3 flex items-center gap-2">
-                      <Cpu className="h-4 w-4 text-blue-400" />
-                      <h4 className="text-sm font-medium text-zinc-300">
-                        Session {(wm.sessionId || wm.id).slice(0, 8)}
-                      </h4>
-                      <span
-                        className={`ml-auto rounded px-1.5 py-0.5 text-xs ${
-                          wm.syncStatus === 'synced'
-                            ? 'bg-green-400/10 text-green-400'
-                            : wm.syncStatus === 'conflict'
-                              ? 'bg-red-400/10 text-red-400'
-                              : 'bg-yellow-400/10 text-yellow-400'
-                        }`}
-                      >
-                        {wm.syncStatus}
-                      </span>
-                    </div>
-
-                    {/* Context Window */}
-                    <div className="mb-3">
-                      <h5 className="mb-1.5 text-xs font-medium text-zinc-500">
-                        Context Window ({wm.contextWindow.length} messages)
-                      </h5>
-                      <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-zinc-800 bg-zinc-950 p-2">
-                        {wm.contextWindow.length === 0 ? (
-                          <p className="text-xs text-zinc-600">Empty context</p>
-                        ) : (
-                          wm.contextWindow.slice(-5).map((msg, i) => (
-                            <div key={i} className="text-xs">
-                              <span
-                                className={`font-medium ${
-                                  msg.role === 'user'
-                                    ? 'text-blue-400'
-                                    : msg.role === 'assistant'
-                                      ? 'text-green-400'
-                                      : msg.role === 'tool'
-                                        ? 'text-yellow-400'
-                                        : 'text-zinc-500'
-                                }`}
-                              >
-                                {msg.role}:
-                              </span>{' '}
-                              <span className="text-zinc-400">
-                                {msg.content.slice(0, 100)}
-                                {msg.content.length > 100 ? '...' : ''}
-                              </span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Active Tools */}
-                    <div className="mb-3">
-                      <h5 className="mb-1.5 text-xs font-medium text-zinc-500">Active Tools</h5>
-                      <div className="flex flex-wrap gap-1.5">
-                        {wm.activeTools.length === 0 ? (
-                          <span className="text-xs text-zinc-600">None</span>
-                        ) : (
-                          wm.activeTools.map((tool) => (
-                            <span
-                              key={tool}
-                              className="rounded-full bg-blue-400/10 px-2 py-0.5 text-xs text-blue-400"
-                            >
-                              {tool}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Temp Variables */}
-                    <div>
-                      <h5 className="mb-1.5 text-xs font-medium text-zinc-500">
-                        Temporary Variables
-                      </h5>
-                      {Object.keys(wm.tempVariables).length === 0 ? (
-                        <span className="text-xs text-zinc-600">None</span>
-                      ) : (
-                        <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
-                          {Object.entries(wm.tempVariables).map(([key, value]) => (
-                            <div key={key} className="flex items-baseline gap-2 text-xs">
-                              <span className="font-mono text-orange-400">{key}</span>
-                              <span className="text-zinc-600">=</span>
-                              <span className="text-zinc-400">
-                                {typeof value === 'object'
-                                  ? JSON.stringify(value).slice(0, 80)
-                                  : String(value)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
       </div>
     </div>
   );

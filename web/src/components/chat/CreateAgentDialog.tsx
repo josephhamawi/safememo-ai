@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useCallback, type FormEvent } from 'react';
-import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ApiError, agents as agentsApi, type ProviderId } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { X, Plus, Settings2, Loader2 } from 'lucide-react';
 import HelpTooltip from '@/components/ui/HelpTooltip';
@@ -85,43 +84,26 @@ export default function CreateAgentDialog({
     setCreating(true);
     setError(null);
 
-    const agentId = crypto.randomUUID();
-
     try {
-      const ref = doc(db, 'agents', agentId);
-      await setDoc(ref, {
-        id: agentId,
-        ownerId: user.uid,
+      // The server owns id generation, defaults, and the check that a
+      // provider key exists — fields the Firestore write set client-side.
+      const agent = await agentsApi.create({
         name: name.trim(),
-        description: description.trim(),
-        type,
-        systemPrompt: systemPrompt.trim(),
+        systemPrompt: systemPrompt.trim() || undefined,
+        provider: inferProvider(model),
         model,
-        modelConfig: {
-          temperature,
-          maxTokens,
-        },
-        enabledSkills: [],
-        memoryConfig: {
-          maxWorkingMemoryMessages,
-          semanticSearchTopK,
-          episodicSearchTopK: 5,
-          autoApprovalEnabled: autoApproval,
-          autoApprovalThreshold,
-        },
-        channels: {
-          web: { enabled: true },
-        },
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        maxTokens,
       });
 
       resetForm();
-      onCreated?.(agentId);
+      onCreated?.(agent.id);
       onClose();
     } catch (err) {
       console.error('Create agent error:', err);
+      if (err instanceof ApiError) {
+        setError(err.message);
+        return;
+      }
       setError(
         err instanceof Error ? err.message : 'Failed to create agent.'
       );
@@ -427,4 +409,13 @@ export default function CreateAgentDialog({
       </div>
     </div>
   );
+}
+
+/** Map a model id to the provider that serves it. */
+function inferProvider(model: string): ProviderId {
+  if (model.startsWith('gemini')) return 'google';
+  if (model.startsWith('gpt') || model.startsWith('o1') || model.startsWith('o3')) {
+    return 'openai';
+  }
+  return 'anthropic';
 }

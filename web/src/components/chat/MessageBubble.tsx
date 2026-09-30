@@ -143,10 +143,8 @@ export default function MessageBubble({ message, onRetry }: MessageBubbleProps) 
 
   const formattedTime = useMemo(() => {
     if (!message.timestamp) return '';
-    const date =
-      typeof message.timestamp.toDate === 'function'
-        ? message.timestamp.toDate()
-        : new Date(message.timestamp as unknown as number);
+    const date = new Date(message.timestamp);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [message.timestamp]);
 

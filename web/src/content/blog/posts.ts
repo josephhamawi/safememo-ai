@@ -6,7 +6,7 @@ export const POSTS: BlogPost[] = [
     title: 'What Is an AI Agent? A Complete Guide for 2026',
     description: 'AI agents are not chatbots. Learn the difference between LLM chatbots and true AI agents that take actions, remember context, and use tools autonomously.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '7 min read',
     tags: ['AI Agents', 'Beginner', 'LLM', 'Automation'],
     category: 'AI Agents',
@@ -37,7 +37,7 @@ The result: we can finally build agents that aren't just demos.
 
 ## What Makes an Agent "Sovereign"
 
-Most cloud chatbots forget you the moment your session ends. A *sovereign* agent keeps its own memory — facts about you, past decisions, lessons learned — that you control. This is the architectural choice behind [Noomachy](/), where every agent runs on three layers of memory: working, semantic, and episodic.
+Most cloud chatbots forget you the moment your session ends. A *sovereign* agent keeps its own memory — facts about you, past decisions, lessons learned — that you control. This is the architectural choice behind [SafeMemo AI](/), where every agent runs on three layers of memory: working, semantic, and episodic.
 
 Read more: [Sovereign Memory: Why AI Agents Need Their Own Brain](/blog/sovereign-memory)
 
@@ -62,7 +62,7 @@ Read more: [Sovereign Memory: Why AI Agents Need Their Own Brain](/blog/sovereig
 
 ## Getting Started
 
-The fastest way to experience a real AI agent is to try one. Noomachy lets you create personal agents with sovereign memory in under a minute. You can connect them to your email, calendar, notes, files, and more — and they remember everything between sessions.
+The fastest way to experience a real AI agent is to try one. SafeMemo AI lets you create personal agents with sovereign memory in under a minute. You can connect them to your email, calendar, notes, files, and more — and they remember everything between sessions.
 
 [Request early access →](/#early-access)
 
@@ -79,7 +79,7 @@ The fastest way to experience a real AI agent is to try one. Noomachy lets you c
     title: 'Sovereign Memory: Why AI Agents Need Their Own Brain',
     description: 'Cloud-only AI forgets you. Sovereign memory means your agent keeps a private, persistent memory that you control. Here is how it works.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Memory', 'Privacy', 'Architecture'],
     category: 'Memory',
@@ -100,9 +100,9 @@ A sovereign memory system means three things:
 
 When your agent learns that you live in Beirut, work in fintech, prefer concise replies, and have a meeting with your CTO every Tuesday — those facts go into *your* memory, not OpenAI's training data.
 
-## How Noomachy Implements It
+## How SafeMemo AI Implements It
 
-Noomachy splits memory into three layers, modeled loosely on human cognition:
+SafeMemo AI splits memory into three layers, modeled loosely on human cognition:
 
 - **L1 — Working Memory** (the last 50 messages of the current conversation)
 - **L2 — Semantic Memory** (validated long-term facts about you)
@@ -127,7 +127,7 @@ The practical implications:
 
 Sovereign memory has a downside: garbage in, garbage out. If the agent saves every random thing the user says, the memory becomes a junk drawer.
 
-Noomachy solves this with a *validation gate*. Before any new fact gets promoted from staging to permanent semantic memory, the system runs three checks:
+SafeMemo AI solves this with a *validation gate*. Before any new fact gets promoted from staging to permanent semantic memory, the system runs three checks:
 
 1. **Duplicate detection** — vector search compares the new fact to existing ones
 2. **Contradiction check** — flags anything that conflicts with prior memories
@@ -144,7 +144,7 @@ This is the difference between an agent that learns and an agent that hallucinat
 
 ## Try It
 
-[Noomachy](/) is built on sovereign memory from day one. Request early access and watch your agent's memory get sharper with every validated fact.
+[SafeMemo AI](/) is built on sovereign memory from day one. Request early access and watch your agent's memory get sharper with every validated fact.
 
 [Request early access →](/#early-access)
 `,
@@ -155,7 +155,7 @@ This is the difference between an agent that learns and an agent that hallucinat
     title: 'The Three-Layer Memory System Powering Smart AI Agents',
     description: 'Working memory, semantic memory, and episodic memory — how a three-layer architecture makes AI agents actually remember and learn.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '8 min read',
     tags: ['Memory', 'Architecture', 'Advanced'],
     category: 'Memory',
@@ -164,7 +164,7 @@ This is the difference between an agent that learns and an agent that hallucinat
 
 Most "AI memory" implementations are just key-value stores that save the last N messages. That's not memory. That's a buffer.
 
-Real memory has structure. Inspired by cognitive science, [Noomachy](/) uses a three-layer architecture: working, semantic, and episodic. Each layer does something specific, and together they let an agent actually learn over time.
+Real memory has structure. Inspired by cognitive science, [SafeMemo AI](/) uses a three-layer architecture: working, semantic, and episodic. Each layer does something specific, and together they let an agent actually learn over time.
 
 ## L1 — Working Memory
 
@@ -238,7 +238,7 @@ This is what a sovereign agent looks like in motion. No model retraining, no man
 
 ## Try It
 
-Noomachy ships with all three layers active by default. Start chatting and watch your Memory tab fill up with facts the agent has learned.
+SafeMemo AI ships with all three layers active by default. Start chatting and watch your Memory tab fill up with facts the agent has learned.
 
 [Request early access →](/#early-access)
 `,
@@ -249,7 +249,7 @@ Noomachy ships with all three layers active by default. Start chatting and watch
     title: 'Model Context Protocol (MCP) Explained: The Future of AI Tooling',
     description: 'MCP is the universal standard for connecting AI models to external tools and data. Here is what it is, how it works, and why it matters.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['MCP', 'Tools', 'Standards'],
     category: 'Tools',
@@ -284,14 +284,14 @@ With MCP, Notion publishes one MCP server. Every model can use it. No adapters, 
 
 ## The Two Roles
 
-- **MCP Client** — the AI app (Claude, Noomachy, your custom agent). It discovers and calls tools.
+- **MCP Client** — the AI app (Claude, SafeMemo AI, your custom agent). It discovers and calls tools.
 - **MCP Server** — the service exposing tools (your database, your file system, an API wrapper).
 
 A single AI app can connect to dozens of MCP servers simultaneously. Each one adds capabilities.
 
-## How Noomachy Uses MCP
+## How SafeMemo AI Uses MCP
 
-[Noomachy](/) is MCP-native from day one. Every tool — built-in or third-party — is exposed through the MCP protocol:
+[SafeMemo AI](/) is MCP-native from day one. Every tool — built-in or third-party — is exposed through the MCP protocol:
 
 - **Built-in MCP server** — provides web search, file ops, code execution, database query
 - **Custom MCP servers** — users can register any external MCP endpoint in [Skills → Add Custom MCP](/dashboard/skills)
@@ -318,7 +318,7 @@ That's literally it. Add authentication, rate limiting, and you have a productio
 
 MCP is rapidly becoming the de-facto standard. Expect to see:
 
-- **Marketplaces** of MCP servers (we're building one in the [Noomachy Skill Marketplace](/dashboard/skills))
+- **Marketplaces** of MCP servers (we're building one in the [SafeMemo AI Skill Marketplace](/dashboard/skills))
 - **Local MCP servers** for every major desktop app
 - **Cloud MCP gateways** that bundle multiple services
 - **MCP-to-MCP routing** so agents can compose tools from multiple sources
@@ -327,7 +327,7 @@ If you're building an AI app today and not using MCP, you're locking yourself in
 
 ## Try It
 
-Noomachy lets you use built-in MCP tools immediately and add your own with one click.
+SafeMemo AI lets you use built-in MCP tools immediately and add your own with one click.
 
 [Request early access →](/#early-access)
 `,
@@ -338,7 +338,7 @@ Noomachy lets you use built-in MCP tools immediately and add your own with one c
     title: 'Claude vs Gemini: Which AI Model Is Right for Your Agent in 2026',
     description: 'A practical comparison of Anthropic Claude and Google Gemini for building production AI agents — pricing, tool use, context, and real-world tradeoffs.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '7 min read',
     tags: ['Claude', 'Gemini', 'Comparison'],
     category: 'Comparisons',
@@ -347,7 +347,7 @@ Noomachy lets you use built-in MCP tools immediately and add your own with one c
 
 If you're building an AI agent in 2026, your two best options are Anthropic's Claude and Google's Gemini. Both are excellent. They're also surprisingly different in practice.
 
-This isn't a benchmark shootout — it's a practical comparison from building [Noomachy](/), a production agent platform that supports both models.
+This isn't a benchmark shootout — it's a practical comparison from building [SafeMemo AI](/), a production agent platform that supports both models.
 
 ## Quick Verdict
 
@@ -375,7 +375,7 @@ This is where Claude pulls ahead. In our testing on agent benchmarks:
 
 If your agent needs to read your inbox, then update a database, then send a notification — Claude handles it more reliably.
 
-We use **Claude as the default** in Noomachy and offer Gemini as an opt-in for users who want the cheaper tier.
+We use **Claude as the default** in SafeMemo AI and offer Gemini as an opt-in for users who want the cheaper tier.
 
 ## Context Window
 
@@ -397,7 +397,7 @@ This matters when you want a smooth UX where the user sees tokens flowing in rea
 
 Both models have safety filters. Claude is more willing to take actions when given tools. Gemini sometimes "explains why it can't" even when the tools exist and the request is benign.
 
-We had to add explicit instructions to Noomachy's system prompt telling Claude it has tools and should use them — because both models occasionally hallucinate that they don't have access. But Gemini does this more often.
+We had to add explicit instructions to SafeMemo AI's system prompt telling Claude it has tools and should use them — because both models occasionally hallucinate that they don't have access. But Gemini does this more often.
 
 ## Multimodal
 
@@ -405,9 +405,9 @@ Gemini wins. It handles images, audio, and video natively in the same prompt. Cl
 
 If your agent's job involves analyzing screenshots, parsing PDFs, or understanding charts, Gemini is the better fit.
 
-## How Noomachy Lets You Pick
+## How SafeMemo AI Lets You Pick
 
-[Noomachy](/) supports both models out of the box. When you create an agent, you choose Claude or Gemini in the model dropdown. You can change it anytime in **Settings → Agent**.
+[SafeMemo AI](/) supports both models out of the box. When you create an agent, you choose Claude or Gemini in the model dropdown. You can change it anytime in **Settings → Agent**.
 
 We track Gemini token usage per user with a $5 default budget cap, so users can experiment with Gemini without runaway costs. Claude billing is pay-as-you-go.
 
@@ -415,7 +415,7 @@ We track Gemini token usage per user with a $5 default budget cap, so users can 
 
 - Building a serious **agent that takes actions**? Use Claude.
 - Building a **content tool** with high volume? Use Gemini Flash.
-- Want both? Use [Noomachy](/) — switch per agent with a dropdown.
+- Want both? Use [SafeMemo AI](/) — switch per agent with a dropdown.
 
 [Request early access →](/#early-access)
 `,
@@ -426,7 +426,7 @@ We track Gemini token usage per user with a $5 default budget cap, so users can 
     title: 'AI Agents vs Traditional Automation: When to Use Each',
     description: 'Zapier and Make are great for linear workflows. AI agents shine for tasks that need judgment. Here is how to pick between them.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Automation', 'Workflow', 'Comparison'],
     category: 'Comparisons',
@@ -439,7 +439,7 @@ Should you use Zapier? Make? n8n? Or an AI agent? In 2026, the answer is increas
 
 **Traditional automation** (Zapier, Make, IFTTT, n8n) executes predetermined sequences. You wire up trigger → action → action → action. The flow is fixed at design time.
 
-**AI agents** (Noomachy, Claude, custom LLM systems) decide what to do at runtime. The flow is determined by the model based on the current situation.
+**AI agents** (SafeMemo AI, Claude, custom LLM systems) decide what to do at runtime. The flow is determined by the model based on the current situation.
 
 ## When Traditional Automation Wins
 
@@ -488,16 +488,16 @@ Example flow:
 
 Now you have automation that's fast and cheap *and* intelligent.
 
-## Where Noomachy Fits
+## Where SafeMemo AI Fits
 
-[Noomachy](/) is an agent platform — it gives you the intelligent judgment layer. You can call any Noomachy agent via:
+[SafeMemo AI](/) is an agent platform — it gives you the intelligent judgment layer. You can call any SafeMemo AI agent via:
 
 - **Web chat** (the main UI)
 - **Telegram, Discord, Slack** (channel adapters)
 - **HTTP API** (call it from your existing automation)
 - **MCP** (any MCP-compatible client)
 
-So Noomachy slots into your existing workflow stack — Zapier handles the trigger, Noomachy handles the judgment, Zapier handles the follow-up actions.
+So SafeMemo AI slots into your existing workflow stack — Zapier handles the trigger, SafeMemo AI handles the judgment, Zapier handles the follow-up actions.
 
 ## Cost Reality Check
 
@@ -516,7 +516,7 @@ The skill is knowing which is which.
     title: 'The Privacy Risks of Cloud AI (And How to Mitigate Them)',
     description: 'Every prompt you send to a cloud AI becomes data. Here are the real risks of cloud-only AI and three concrete mitigation strategies.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Privacy', 'Security', 'Compliance'],
     category: 'Privacy',
@@ -536,7 +536,7 @@ Major providers retain prompts. Some use them for training (with opt-out flags).
 **Mitigation:**
 - Use enterprise tiers with explicit no-training contracts
 - Self-host open-source models for sensitive workloads
-- Run an agent platform that keeps memory local — like [Noomachy's sovereign memory](/blog/sovereign-memory)
+- Run an agent platform that keeps memory local — like [SafeMemo AI's sovereign memory](/blog/sovereign-memory)
 
 ## Risk 2: Token Leakage Through OAuth
 
@@ -545,7 +545,7 @@ Most "AI assistant" apps ask you to OAuth into Gmail, Calendar, Notion, etc. The
 **Mitigation:**
 - Never grant scopes you don't need
 - Prefer **local-first** integrations that read your data on your machine
-- Use [Noomachy's desktop app](/blog/ai-access-mac-apps) where local Mac apps are exposed via a local MCP server, not via OAuth tokens stored in the cloud
+- Use [SafeMemo AI's desktop app](/blog/ai-access-mac-apps) where local Mac apps are exposed via a local MCP server, not via OAuth tokens stored in the cloud
 
 ## Risk 3: Prompt Logging and Retention
 
@@ -563,7 +563,7 @@ If your AI provider stores all your "memories," you're locked into them. Want to
 **Mitigation:**
 - Choose providers with **export** functionality
 - Use sovereign-memory architectures where you own the memory store
-- [Noomachy lets you export every memory](/dashboard/memory) as JSON
+- [SafeMemo AI lets you export every memory](/dashboard/memory) as JSON
 
 ## Risk 5: Cross-Tenant Leakage
 
@@ -583,7 +583,7 @@ Multi-tenant cloud AI services have to keep different customers' data isolated. 
 
 Agents are more privacy-sensitive than chatbots because they accumulate state. A chatbot forgets you. An agent remembers everything. That makes the storage architecture of your agent provider more important than the model itself.
 
-[Noomachy](/) was designed with privacy-first as a core principle: sovereign memory, local-first integrations via MCP, multi-tenant isolation enforced by Firestore security rules, audit logs for every action.
+[SafeMemo AI](/) was designed with privacy-first as a core principle: sovereign memory, local-first integrations via MCP, multi-tenant isolation enforced by Firestore security rules, audit logs for every action.
 
 [Request early access →](/#early-access)
 `,
@@ -591,15 +591,15 @@ Agents are more privacy-sensitive than chatbots because they accumulate state. A
 
   {
     slug: 'vector-search-memory',
-    title: 'How Noomachy Uses Vector Search to Find Relevant Memories',
+    title: 'How SafeMemo AI Uses Vector Search to Find Relevant Memories',
     description: 'Vector embeddings turn semantic memory from a junk drawer into a searchable brain. Here is how it works under the hood.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Vector Search', 'Embeddings', 'Architecture'],
     category: 'Memory',
     content: `
-# How Noomachy Uses Vector Search to Find Relevant Memories
+# How SafeMemo AI Uses Vector Search to Find Relevant Memories
 
 Saving memories is the easy part. *Finding* the right ones at the right moment is where the engineering happens.
 
@@ -619,7 +619,7 @@ So *"Sarah suggested The Lean Startup"* and *"a book my colleague recommended"* 
 
 ## The Pipeline
 
-Here's how [Noomachy](/) uses embeddings under the hood:
+Here's how [SafeMemo AI](/) uses embeddings under the hood:
 
 ### 1. On Memory Creation
 
@@ -640,7 +640,7 @@ This happens in milliseconds for thousands of memories.
 
 ### 3. The Hybrid Approach
 
-Pure vector search is great for semantic similarity but can miss exact matches. Noomachy uses a hybrid:
+Pure vector search is great for semantic similarity but can miss exact matches. SafeMemo AI uses a hybrid:
 
 - **Vector similarity** for semantic relevance
 - **Tag filtering** for explicit categorization
@@ -673,7 +673,7 @@ This is how you prevent your memory store from filling up with slight rephrasing
 - Vector search over 10K memories: < 10ms with proper indexing
 - Total memory hydration before each request: ~100-200ms
 
-In production, the embedding step is the bottleneck. Caching embeddings aggressively (which Noomachy does) keeps it fast.
+In production, the embedding step is the bottleneck. Caching embeddings aggressively (which SafeMemo AI does) keeps it fast.
 
 ## What This Means For You
 
@@ -688,14 +688,14 @@ You don't need to think about any of this. As a user, you just chat. Your agent 
     title: 'The Real Cost of Running an AI Agent Platform',
     description: 'Token costs, infrastructure, storage — what does it actually cost to run a production AI agent? A breakdown from the trenches.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Cost', 'Infrastructure', 'LLM'],
     category: 'AI Agents',
     content: `
 # The Real Cost of Running an AI Agent Platform
 
-Everyone wants to build an AI agent. Few people calculate what it costs to actually run one in production. Here's a real breakdown from running [Noomachy](/).
+Everyone wants to build an AI agent. Few people calculate what it costs to actually run one in production. Here's a real breakdown from running [SafeMemo AI](/).
 
 ## Cost Components
 
@@ -733,7 +733,7 @@ You can ignore this cost.
 
 ## Vector Storage and Search
 
-For Noomachy, we store vectors in Firestore alongside the memory documents. No separate vector DB needed. Cost: included in the regular Firestore storage cost (~$0.18/GB/month).
+For SafeMemo AI, we store vectors in Firestore alongside the memory documents. No separate vector DB needed. Cost: included in the regular Firestore storage cost (~$0.18/GB/month).
 
 If you scale beyond ~100K memories per user, you'd want a real vector index (Pinecone, Vertex AI Vector Search, pgvector). At those scales the cost is real but still small compared to LLM calls.
 
@@ -758,7 +758,7 @@ A user with 100 conversations and 500 memories: ~5MB total. Negligible.
 
 ## The Actual Per-User Cost
 
-Putting it all together for a typical Noomachy user (active, daily use):
+Putting it all together for a typical SafeMemo AI user (active, daily use):
 
 - LLM (mostly Claude): $1–5/month
 - Embeddings: $0.01/month
@@ -775,7 +775,7 @@ If you're running your own agent platform:
 1. **Use smaller models for sub-tasks.** Use Claude Sonnet for reasoning, but Gemini Flash or Haiku for fact extraction, intent classification, summarization.
 2. **Cache aggressively.** Embeddings, tool results, intermediate computations.
 3. **Limit context.** Don't pass every memory — use top-K vector search.
-4. **Set per-user budget caps.** Noomachy has a $5/month default cap on Gemini for free-tier users.
+4. **Set per-user budget caps.** SafeMemo AI has a $5/month default cap on Gemini for free-tier users.
 5. **Use prompt caching.** Anthropic's prompt caching can cut token costs by 50–90% on repeated system prompts.
 
 ## Pricing Implications
@@ -786,7 +786,7 @@ This is why most AI assistant products either:
 - Limit usage with hard caps and tiers
 - Run as loss leaders to gather data for training
 
-[Noomachy](/) bounds this with a per-tenant daily USD cap (default $5/day) that fails closed before a runaway bill, and routes to Claude for validation-critical work with Gemini as the cost-tier fallback. The economics work because the cap is the ceiling, not the expectation — most tenants stay well under it.
+[SafeMemo AI](/) bounds this with a per-tenant daily USD cap (default $5/day) that fails closed before a runaway bill, and routes to Claude for validation-critical work with Gemini as the cost-tier fallback. The economics work because the cap is the ceiling, not the expectation — most tenants stay well under it.
 
 ## Bottom Line
 
@@ -801,7 +801,7 @@ Running an AI agent is **cheaper than people think** (if you're frugal) and **mo
     title: 'AI Agents for Developers: Code Execution, File Access, and More',
     description: 'How AI agents can actually help with coding — running code, reading files, querying databases — not just generating text.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '5 min read',
     tags: ['Developers', 'Coding', 'Tools'],
     category: 'AI Agents',
@@ -834,7 +834,7 @@ The agent reads the files itself, processes them, and answers — no manual copy
 
 ## Database Queries
 
-The \`db_query\` tool in [Noomachy](/) lets agents query Firestore directly:
+The \`db_query\` tool in [SafeMemo AI](/) lets agents query Firestore directly:
 
 - *"How many active users do we have?"*
 - *"What's the most recently created agent?"*
@@ -848,7 +848,7 @@ Sometimes the agent needs context from outside its training data — a new libra
 
 ## The Sandbox Question
 
-Code execution sounds scary. A misbehaving agent could rm -rf your home directory. Noomachy runs all code execution in a sandbox:
+Code execution sounds scary. A misbehaving agent could rm -rf your home directory. SafeMemo AI runs all code execution in a sandbox:
 
 - **JavaScript:** isolated-vm with strict memory and timeout limits
 - **Python:** child process with no network or filesystem access by default
@@ -857,7 +857,7 @@ The sandbox is the difference between "AI that can run code" and "AI that should
 
 ## Real Workflow Example
 
-Here's what a typical developer workflow looks like in [Noomachy](/) with the \`code_execution\`, \`web_search\`, and \`file_operations\` skills installed:
+Here's what a typical developer workflow looks like in [SafeMemo AI](/) with the \`code_execution\`, \`web_search\`, and \`file_operations\` skills installed:
 
 1. *"Read the README in my-project and summarize what the app does."*
 2. *"Now look at the package.json and check if there are any vulnerabilities in the deps."*
@@ -884,7 +884,7 @@ Use the time you save to do the thinking the agent can't do.
     title: 'Why Validation Gates Matter in AI Memory Systems',
     description: 'Naive AI memory becomes a junk drawer. Validation gates filter out duplicates, contradictions, and noise so memory stays useful.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '5 min read',
     tags: ['Memory', 'Quality', 'Architecture'],
     category: 'Memory',
@@ -910,9 +910,9 @@ Based on the results, the fact is either:
 - **Rejected** as a duplicate or contradiction
 - **Queued for review** if it's ambiguous
 
-## How [Noomachy](/) Implements It
+## How [SafeMemo AI](/) Implements It
 
-Noomachy's validation gate runs as a Firestore trigger. When a new fact gets written to the staging collection, the trigger fires automatically:
+SafeMemo AI's validation gate runs as a Firestore trigger. When a new fact gets written to the staging collection, the trigger fires automatically:
 
 \`\`\`
 1. Embed the new fact (Vertex AI textembedding-gecko)
@@ -949,12 +949,12 @@ What gets through:
 
 - Concrete personal facts ("Joseph works at KodeFoundry")
 - Strong preferences ("Prefers dark mode in all apps")
-- Project details ("Building an AI agent platform called Noomachy")
+- Project details ("Building an AI agent platform called SafeMemo AI")
 - Relationships ("Sarah is the user's CTO")
 
 ## The Validation Queue UI
 
-For facts that don't auto-approve, Noomachy shows them in a **Validation Queue** in the Memory Explorer. You can:
+For facts that don't auto-approve, SafeMemo AI shows them in a **Validation Queue** in the Memory Explorer. You can:
 
 - Approve them manually
 - Reject them with a reason
@@ -979,7 +979,7 @@ A memory store with good validation **gets better over time**. The longer you us
     title: 'Self-Hosted vs Hosted AI Agents: Which Should You Choose?',
     description: 'Run your own agent stack or use a managed platform? A practical comparison of cost, complexity, privacy, and control.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Self-Hosted', 'Hosted', 'Comparison'],
     category: 'Comparisons',
@@ -1002,7 +1002,7 @@ The downside: you're now an infrastructure team. You maintain everything. When O
 
 ## The Hosted Pitch
 
-Using a managed platform like [Noomachy](/) means:
+Using a managed platform like [SafeMemo AI](/) means:
 
 - **Setup in minutes** — sign up, create an agent, start chatting
 - **Maintenance is someone else's problem** — model upgrades, security patches, scaling
@@ -1016,11 +1016,11 @@ The downside: you're trusting a vendor with your data and your continuity. If th
 ## Cost Comparison
 
 For a single team:
-- **Hosted (Noomachy):** design-partner pricing during early access; a per-tenant daily USD cap bounds spend
+- **Hosted (SafeMemo AI):** design-partner pricing during early access; a per-tenant daily USD cap bounds spend
 - **Self-hosted (1 server + LLM API):** ~$20–40/month server + your token costs
 
 For 1000+ users:
-- **Hosted (Noomachy):** custom pricing, scales with usage
+- **Hosted (SafeMemo AI):** custom pricing, scales with usage
 - **Self-hosted:** ~$200–500/month infrastructure + your token costs + DevOps time
 
 The break-even is around 50–100 active users, depending on usage patterns.
@@ -1031,7 +1031,7 @@ Self-hosted is *theoretically* more private — no third party touches your data
 
 Truly private = self-hosted + a self-hosted model (Llama 3, Mistral). That gets you full data sovereignty but the model quality is currently a step behind frontier cloud models.
 
-A hosted platform like [Noomachy](/) can offer **sovereign memory** (your data lives in your account, not the provider's training set) without going full self-hosted. This is the middle path most users actually want.
+A hosted platform like [SafeMemo AI](/) can offer **sovereign memory** (your data lives in your account, not the provider's training set) without going full self-hosted. This is the middle path most users actually want.
 
 ## Complexity Comparison
 
@@ -1058,7 +1058,7 @@ A hosted platform: sign up, create agent, done. The 8 components above already e
 - You need deeply custom behavior you can't get from a platform
 - You want to use a self-hosted model
 
-**Use hosted (like [Noomachy](/)) if:**
+**Use hosted (like [SafeMemo AI](/)) if:**
 - You want to build features, not infrastructure
 - You're a solo user or small team
 - You want multi-channel out of the box
@@ -1067,7 +1067,7 @@ A hosted platform: sign up, create agent, done. The 8 components above already e
 
 ## The Hybrid Option
 
-There's a third path: use a hosted platform for the dashboard / orchestration / memory, but plug in your own MCP servers for custom tools. This is what most Noomachy power users do — they get the platform benefits plus custom integrations.
+There's a third path: use a hosted platform for the dashboard / orchestration / memory, but plug in your own MCP servers for custom tools. This is what most SafeMemo AI power users do — they get the platform benefits plus custom integrations.
 
 [Request early access →](/#early-access) and see how far the hosted version gets you before you'd ever need to self-host.
 `,
@@ -1078,7 +1078,7 @@ There's a third path: use a hosted platform for the dashboard / orchestration / 
     title: 'How AI Agents Learn From Every Interaction',
     description: 'Modern AI agents do not need fine-tuning to improve. They learn through structured memory and context updates. Here is how it works.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '5 min read',
     tags: ['Learning', 'Memory', 'Adaptation'],
     category: 'Memory',
@@ -1101,7 +1101,7 @@ Next time you start a conversation, all of that gets injected into the system pr
 
 ## Three Types of Learning
 
-[Noomachy](/) tracks three distinct kinds of learning:
+[SafeMemo AI](/) tracks three distinct kinds of learning:
 
 ### 1. Factual Learning
 
@@ -1137,7 +1137,7 @@ Memory-based learning has none of these problems:
 
 Learning is only useful if what's learned is correct. Bad memories produce worse responses than no memory at all.
 
-Noomachy uses a **validation gate** ([read more here](/blog/validation-gates)) to filter incoming facts before they reach long-term storage:
+SafeMemo AI uses a **validation gate** ([read more here](/blog/validation-gates)) to filter incoming facts before they reach long-term storage:
 
 - Duplicate detection via vector similarity
 - Contradiction checks against existing high-confidence facts
@@ -1161,7 +1161,7 @@ That summary is injected into every system prompt. The model adapts naturally �
 
 ## Try It
 
-[Request early access →](/#early-access) and chat with Noomachy for a week. You'll watch the Memory tab fill up with facts and the behavior profile sharpen. The agent will actually feel different than it did on day one — not because the model changed, but because its context did.
+[Request early access →](/#early-access) and chat with SafeMemo AI for a week. You'll watch the Memory tab fill up with facts and the behavior profile sharpen. The agent will actually feel different than it did on day one — not because the model changed, but because its context did.
 `,
   },
 
@@ -1170,7 +1170,7 @@ That summary is injected into every system prompt. The model adapts naturally �
     title: 'How to Choose an AI Agent Platform in 2026',
     description: 'A buyer guide for picking an AI agent platform — the questions to ask, the red flags to watch for, and what really matters.',
     date: '2026-04-11',
-    author: 'Noomachy Team',
+    author: 'SafeMemo AI Team',
     readTime: '6 min read',
     tags: ['Platform', 'Buying Guide', 'Comparison'],
     category: 'Comparisons',
@@ -1201,7 +1201,7 @@ There are three patterns:
 
 Single-model platforms are risky. The state of the art changes every few months. Look for platforms that let you switch between Claude, Gemini, GPT-4, etc., per agent or per request.
 
-[Noomachy](/) supports both Claude and Gemini natively, with model selection per agent.
+[SafeMemo AI](/) supports both Claude and Gemini natively, with model selection per agent.
 
 ## Question 4: How many channels?
 
@@ -1253,11 +1253,11 @@ Vendor lock-in is the silent killer. Platforms built on open standards (MCP, Ope
 
 Any serious platform offers a meaningful free tier. If you have to talk to sales just to evaluate, you'll have a bad time later.
 
-## The Noomachy Comparison
+## The SafeMemo AI Comparison
 
-Here's how [Noomachy](/) answers each question:
+Here's how [SafeMemo AI](/) answers each question:
 
-| Question | Noomachy |
+| Question | SafeMemo AI |
 |---|---|
 | Tool use? | Full MCP, 19+ built-in skills, custom MCP support |
 | Memory? | Sovereign, three-layer, exportable |
